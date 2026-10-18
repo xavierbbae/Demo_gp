@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Groupe Parfait — Pilotage & Performance</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div>
+          <strong>GROUPE PARFAIT</strong>
+          <span>Pilotage & Performance</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="overview"><span>▦</span> Vue d'ensemble</button>
+        <button class="nav-item" data-view="companies"><span>▤</span> Entreprises</button>
+        <button class="nav-item" data-view="performance"><span>↗</span> Performance</button>
+        <button class="nav-item" data-view="map"><span>◎</span> Cartographie</button>
+        <button class="nav-item" data-view="connections"><span>↻</span> Connexions comptables</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="source-card">
+          <div class="source-dot"></div>
+          <div><b>Données publiques</b><small>Répertoire entreprises</small></div>
+        </div>
+        <div class="demo-tag">DÉMO — DONNÉES INTERNES SIMULÉES</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="pageEyebrow">PILOTAGE GROUPE</p>
+          <h1 id="pageTitle">Vue d'ensemble</h1>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost" id="exportBtn">Exporter les données</button>
+          <div class="period-pill">Octobre 2026</div>
+          <div class="avatar">GP</div>
+        </div>
+      </header>
+
+      <section id="overviewView" class="view active">
+        <div class="hero-row">
+          <div>
+            <h2>Performance du groupe</h2>
+            <p class="muted">Référentiel légal public + indicateurs internes modifiables</p>
+          </div>
+          <div class="status-chip"><span></span> Référentiel chargé</div>
+        </div>
+
+        <div class="kpi-grid" id="overviewKpis"></div>
+
+        <div class="dashboard-grid">
+          <article class="panel span-8">
+            <div class="panel-head"><div><h3>Évolution du CA groupe</h3><p>Données simulées pour la démonstration — 12 derniers mois</p></div><span class="badge orange">SIMULATION</span></div>
+            <div id="groupTrend" class="trend-panel"></div>
+          </article>
+
+          <article class="panel span-4">
+            <div class="panel-head"><div><h3>Automatisation comptable</h3><p>Vision produit cible</p></div></div>
+            <div id="automationCard" class="automation-card"></div>
+          </article>
+
+          <article class="panel span-8">
+            <div class="panel-head"><div><h3>Entreprises par secteur</h3><p>Répartition selon l'activité principale</p></div></div>
+            <div id="sectorBars" class="sector-bars"></div>
+          </article>
+
+          <article class="panel span-4">
+            <div class="panel-head"><div><h3>Lecture de la démo</h3><p>Données publiques + simulations</p></div></div>
+            <div class="demo-explain"><p><b>Public :</b> identité, SIREN/SIRET, adresse, activité, effectifs/finances quand disponibles.</p><p><b>Simulé :</b> CA mensuel, N-1, résultats, objectifs et scores.</p><p><b>Cible :</b> ces simulations sont remplacées par les API comptables du client.</p></div>
+          </article>
+
+          <article class="panel span-8">
+            <div class="panel-head">
+              <div><h3>Top sociétés — CA 2026 simulé</h3><p>Projection de démonstration, ancrée sur le CA public lorsqu'il existe</p></div>
+              <button class="link-btn" data-go="companies">Voir toutes →</button>
+            </div>
+            <div class="table-wrap compact"><table><thead><tr><th>Entreprise</th><th>CA YTD simulé</th><th>Évolution</th><th>Résultat YTD</th></tr></thead><tbody id="financialTop"></tbody></table></div>
+          </article>
+
+          
+        </div>
+      </section>
+
+      <section id="companiesView" class="view">
+        <div class="toolbar panel">
+          <div class="search-box"><span>⌕</span><input id="companySearch" type="search" placeholder="Rechercher une entreprise, un SIREN, une ville…" /></div>
+          <select id="statusFilter"><option value="all">Tous les statuts</option><option value="A">Actives</option><option value="C">Fermées</option></select>
+          <select id="sectorFilter"><option value="all">Tous les secteurs</option></select>
+          <select id="managerFilter"><option value="all">Tous les dirigeants</option><option value="robert">Robert Parfait</option><option value="kevin">Kévin Parfait</option><option value="both">Robert + Kévin</option></select>
+          <span class="result-count" id="companyCount"></span>
+        </div>
+        <div class="panel table-panel">
+          <div class="table-wrap"><table class="company-table"><thead><tr><th>Entreprise</th><th>SIREN</th><th>Activité</th><th>Ville</th><th>Effectif</th><th>CA 2026 simulé</th><th>Évolution</th><th>Statut</th><th></th></tr></thead><tbody id="companiesTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="performanceView" class="view">
+        <div class="notice"><b>Indicateurs de démonstration.</b> Les scores internes ci-dessous sont simulés localement pour montrer le fonctionnement. Ils ne proviennent pas des données publiques.</div>
+        <div class="kpi-grid" id="performanceKpis"></div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Score de performance</h3><p>Exemple de suivi interne mensuel — cliquez sur une entreprise pour modifier ses données</p></div>
+            <select id="performanceFilter"><option value="all">Toutes</option><option value="red">En alerte</option><option value="orange">À surveiller</option><option value="green">Objectif atteint</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Entreprise</th><th>Secteur</th><th>CA YTD simulé</th><th>Évolution N-1</th><th>Résultat YTD</th><th>Score</th><th>Statut</th></tr></thead><tbody id="performanceTable"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="mapView" class="view">
+        <div class="panel">
+          <div class="panel-head"><div><h3>Cartographie simplifiée du groupe</h3><p>Regroupement automatique par grande famille d'activité</p></div></div>
+          <div id="groupMap" class="group-map"></div>
+        </div>
+      </section>
+
+      <section id="connectionsView" class="view">
+        <div class="notice"><b>Vision cible du produit.</b> Les connexions ci-dessous sont présentées dans la démo pour illustrer l'automatisation future. Les boutons de connexion sont simulés localement.</div>
+        <div class="connection-hero panel">
+          <div><p class="eyebrow">CENTRALISATION FINANCIÈRE</p><h2>Connecter les outils comptables du groupe</h2><p>Chaque filiale peut conserver son logiciel actuel. Le dashboard normalise ensuite les données pour offrir une lecture groupe homogène : CA, résultat, trésorerie, créances, dettes, marges et KPI.</p></div>
+          <div class="sync-visual"><div class="sync-node">Sage</div><div class="sync-node">Cegid</div><div class="sync-center">PARFAIT<br><small>Data Hub</small></div><div class="sync-node">EBP</div><div class="sync-node">ERP</div></div>
+        </div>
+        <div class="connections-grid" id="connectionsGrid"></div>
+        <div class="panel data-flow"><div class="panel-head"><div><h3>Flux cible</h3><p>Exemple d'architecture fonctionnelle</p></div></div><div class="flow-row"><div>Outils comptables<br><small>Sage · Cegid · EBP · ERP</small></div><span>→</span><div>Connecteurs<br><small>API · SFTP · imports</small></div><span>→</span><div>Modèle financier commun<br><small>CA · résultat · cash · KPI</small></div><span>→</span><div>Dashboard groupe<br><small>Temps quasi-réel</small></div></div></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <aside class="company-drawer" id="companyDrawer">
+    <button class="drawer-close" id="drawerClose">×</button>
+    <div id="drawerContent"></div>
+  </aside>
+
+  <div class="modal-overlay" id="kpiModalOverlay">
+    <div class="modal">
+      <div class="modal-head"><h3>Ajouter un KPI</h3><button id="kpiModalClose">×</button></div>
+      <form id="kpiForm" class="form-grid">
+        <input type="hidden" id="kpiCompanySiren" />
+        <label>Nom du KPI<input id="kpiName" required placeholder="Ex. Satisfaction client" /></label>
+        <label>Unité<select id="kpiUnit"><option>%</option><option>€</option><option>k€</option><option>M€</option><option>nombre</option><option>jours</option><option>heures</option><option>score</option></select></label>
+        <label>Valeur<input id="kpiValue" type="number" step="any" required /></label>
+        <label>Objectif<input id="kpiTarget" type="number" step="any" required /></label>
+        <label class="full">Commentaire<textarea id="kpiComment" rows="3" placeholder="Commentaire interne…"></textarea></label>
+        <div class="form-actions full"><button type="button" class="btn ghost" id="kpiCancel">Annuler</button><button class="btn primary" type="submit">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="data/companies-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
