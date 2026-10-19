@@ -13,6 +13,9 @@ const months = ['Nov. 25','Déc. 25','Jan. 26','Fév. 26','Mars 26','Avr. 26','M
 
 let internal = loadInternal();
 let currentCompany = null;
+const selectedCompanies = new Set();
+let kpiTargets = [];
+const TRAININGS_KEY = 'parfait_trainings_v1';
 
 function loadInternal(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch{return{}} }
 function saveInternal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(internal)); }
@@ -82,11 +85,11 @@ function setupNav(){
   document.querySelectorAll('[data-go]').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.go)));
 }
 function showView(name){
-  const titles={overview:['PILOTAGE GROUPE','Vue d\'ensemble'],companies:['RÉFÉRENTIEL','Entreprises'],performance:['ANALYSE FINANCIÈRE','Performance'],map:['STRUCTURE','Cartographie'],connections:['INTÉGRATIONS','Connexions comptables']};
+  const titles={overview:['PILOTAGE GROUPE','Vue d\'ensemble'],companies:['RÉFÉRENTIEL','Entreprises'],performance:['ANALYSE FINANCIÈRE','Performance'],map:['STRUCTURE','Cartographie'],connections:['INTÉGRATIONS','Connexions comptables'],registrations:['FORMATIONS','Inscriptions formations']};
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); const target=document.getElementById(name+'View'); if(target) target.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
   document.getElementById('pageEyebrow').textContent=titles[name][0]; document.getElementById('pageTitle').textContent=titles[name][1];
-  if(name==='companies')renderCompanies(); if(name==='performance')renderPerformance(); if(name==='map')renderMap(); if(name==='connections')renderConnections();
+  if(name==='companies')renderCompanies(); if(name==='performance')renderPerformance(); if(name==='map')renderMap(); if(name==='connections')renderConnections(); if(name==='registrations')renderTrainings();
 }
 
 function groupTotals(){
@@ -125,13 +128,28 @@ function renderOverview(){
 function setupCompanyFilters(){
   const select=document.getElementById('sectorFilter'); [...new Set(companies.map(sector))].sort().forEach(s=>select.insertAdjacentHTML('beforeend',`<option value="${esc(s)}">${esc(s)}</option>`));
   ['companySearch','statusFilter','sectorFilter','managerFilter'].forEach(id=>document.getElementById(id).addEventListener(id==='companySearch'?'input':'change',renderCompanies));
+  document.getElementById('selectVisibleCompanies').addEventListener('change',e=>{document.querySelectorAll('#companiesTable input[data-select-siren]').forEach(input=>{if(e.target.checked)selectedCompanies.add(input.dataset.selectSiren);else selectedCompanies.delete(input.dataset.selectSiren)});renderCompanies()});
+  document.getElementById('clearSelectionBtn').addEventListener('click',()=>{selectedCompanies.clear();renderCompanies()});
+  document.getElementById('bulkKpiBtn').addEventListener('click',()=>openKpiModal([...selectedCompanies]));
 }
 function renderCompanies(){
   const q=document.getElementById('companySearch').value.trim().toLowerCase(),st=document.getElementById('statusFilter').value,sec=document.getElementById('sectorFilter').value,mgr=document.getElementById('managerFilter').value;
   let rows=companies.filter(c=>{ const hay=[c.nom_complet,c.siren,c.siret_siege,c.ville,c.adresse,c.activite_principale].join(' ').toLowerCase(); const okMgr=mgr==='all'||(mgr==='robert'&&c.dirigeant_robert)||(mgr==='kevin'&&c.dirigeant_kevin)||(mgr==='both'&&c.dirigeant_robert&&c.dirigeant_kevin); return (!q||hay.includes(q))&&(st==='all'||c.etat_administratif===st)&&(sec==='all'||sector(c)===sec)&&okMgr; });
   document.getElementById('companyCount').textContent=`${rows.length} / ${companies.length} sociétés`;
-  document.getElementById('companiesTable').innerHTML=rows.length?rows.map(c=>{const f=simulatedFinance(c); return `<tr data-siren="${c.siren}"><td><div class="company-name">${esc(c.nom_complet)}</div><div class="company-sub">${esc(managerLabel(c))}</div></td><td>${c.siren}</td><td><div>${esc(sector(c))}</div><div class="company-sub">${esc(c.activite_principale||'')}</div></td><td>${esc(c.ville||'N/D')}</td><td>${esc(employeeLabel(c))}</td><td class="money">${fmtMoney(f.ytd)}</td><td class="${f.trend>=0?'positive':'negative'}">${f.trend>=0?'+':''}${f.trend.toFixed(1)} %</td><td><span class="badge ${c.etat_administratif==='A'?'active':'closed'}">${c.etat_administratif==='A'?'Active':'Fermée'}</span></td><td>›</td></tr>`}).join(''):`<tr><td colspan="9" class="empty">Aucune société ne correspond aux filtres.</td></tr>`;
-  document.querySelectorAll('#companiesTable tr[data-siren]').forEach(r=>r.addEventListener('click',()=>openCompany(r.dataset.siren)));
+  document.getElementById('companiesTable').innerHTML=rows.length?rows.map(c=>{const f=simulatedFinance(c); return `<tr data-siren="${c.siren}"><td><input type="checkbox" data-select-siren="${c.siren}" aria-label="Sélectionner ${esc(c.nom_complet)}" ${selectedCompanies.has(c.siren)?'checked':''}></td><td><div class="company-name">${esc(c.nom_complet)}</div><div class="company-sub">${esc(managerLabel(c))}</div></td><td>${c.siren}</td><td><div>${esc(sector(c))}</div><div class="company-sub">${esc(c.activite_principale||'')}</div></td><td>${esc(c.ville||'N/D')}</td><td>${esc(employeeLabel(c))}</td><td class="money">${fmtMoney(f.ytd)}</td><td class="${f.trend>=0?'positive':'negative'}">${f.trend>=0?'+':''}${f.trend.toFixed(1)} %</td><td><span class="badge ${c.etat_administratif==='A'?'active':'closed'}">${c.etat_administratif==='A'?'Active':'Fermée'}</span></td><td>›</td></tr>`}).join(''):`<tr><td colspan="10" class="empty">Aucune société ne correspond aux filtres.</td></tr>`;
+  document.querySelectorAll('#companiesTable tr[data-siren]').forEach(row=>row.addEventListener('click',e=>{if(e.target.closest('input'))return;openCompany(row.dataset.siren)}));
+  document.querySelectorAll('#companiesTable input[data-select-siren]').forEach(input=>input.addEventListener('change',()=>{if(input.checked)selectedCompanies.add(input.dataset.selectSiren);else selectedCompanies.delete(input.dataset.selectSiren);updateCompanySelection(rows)}));
+  updateCompanySelection(rows);
+}
+
+function updateCompanySelection(rows){
+  const count=selectedCompanies.size;
+  document.getElementById('selectedCount').textContent=`${count} entreprise${count>1?'s':''} sélectionnée${count>1?'s':''}`;
+  document.getElementById('bulkKpiBtn').disabled=count===0;
+  document.getElementById('clearSelectionBtn').disabled=count===0;
+  const selectAll=document.getElementById('selectVisibleCompanies');
+  selectAll.checked=rows.length>0&&rows.every(c=>selectedCompanies.has(c.siren));
+  selectAll.indeterminate=!selectAll.checked&&rows.some(c=>selectedCompanies.has(c.siren));
 }
 
 function renderPerformance(){
@@ -171,7 +189,8 @@ function openCompany(siren){
   const publicCA=n(c.ca_public)>0?fmtMoney(c.ca_public):'N/D'; const resultPublic=n(c.resultat_net_public)!==null?fmtMoney(c.resultat_net_public):'N/D';
   document.getElementById('drawerContent').innerHTML=`
     <div class="drawer-header"><p class="eyebrow">${esc(sector(c))}</p><h2>${esc(c.nom_complet)}</h2><p class="muted">SIREN ${c.siren} · ${esc(managerLabel(c))}</p></div>
-    <div class="drawer-body">
+    <div class="drawer-tabs"><button class="drawer-tab active" type="button" data-drawer-tab="details">Fiche entreprise</button><button class="drawer-tab" type="button" data-drawer-tab="notes">Note privée</button></div>
+    <div class="drawer-body" id="companyDetailsPanel">
       <div class="section-title">Données légales</div>
       <div class="info-grid">
         <div class="info-box"><small>SIRET siège</small><b>${esc(c.siret_siege||'N/D')}</b><div class="data-source">Source publique</div></div>
@@ -201,26 +220,45 @@ function openCompany(siren){
       </form>
 
       <div class="section-title">KPI internes</div><div class="kpi-list" id="companyKpiList"></div><button class="btn ghost" id="addKpiBtn">+ Ajouter un KPI</button>
+    </div>
+    <div class="drawer-body" id="companyNotesPanel" hidden>
+      <div class="notice"><b>Note privée de démo.</b> Conservée uniquement sur cet appareil. Sans connexion utilisateur, elle n’est pas protégée contre les autres personnes utilisant ce navigateur.</div>
+      <form id="privateNoteForm"><label for="privateNote">Votre note sur ${esc(c.nom_complet)}</label><textarea id="privateNote" rows="10" placeholder="Écrivez votre note interne…">${esc(int.privateNote??'')}</textarea><div class="form-actions"><button class="btn primary" type="submit">Enregistrer la note</button></div><p id="privateNoteStatus" role="status"></p></form>
     </div>`;
   renderCompanyKpis(c.siren);
   document.getElementById('internalForm').addEventListener('submit',e=>{e.preventDefault();const old=getInternal(c.siren);internal[c.siren]={...old,effectif_interne:document.getElementById('internalEmployees').value,ca_interne:document.getElementById('internalRevenue').value,objectif_ca:document.getElementById('internalTarget').value,categorie_groupe:document.getElementById('internalCategory').value,commentaire:document.getElementById('internalComment').value};saveInternal();alert('Données internes enregistrées localement.');});
   document.getElementById('addKpiBtn').addEventListener('click',()=>openKpiModal(c.siren));
+  document.querySelectorAll('[data-drawer-tab]').forEach(button=>button.addEventListener('click',()=>{const notes=button.dataset.drawerTab==='notes';document.getElementById('companyDetailsPanel').hidden=notes;document.getElementById('companyNotesPanel').hidden=!notes;document.querySelectorAll('[data-drawer-tab]').forEach(tab=>tab.classList.toggle('active',tab===button))}));
+  document.getElementById('privateNoteForm').addEventListener('submit',e=>{e.preventDefault();internal[c.siren]={...getInternal(c.siren),privateNote:document.getElementById('privateNote').value};saveInternal();document.getElementById('privateNoteStatus').textContent='Note enregistrée sur cet appareil.'});
   document.getElementById('drawerOverlay').classList.add('open'); document.getElementById('companyDrawer').classList.add('open');
 }
 function renderCompanyKpis(siren){
   const list=(getInternal(siren).kpis||[]); document.getElementById('companyKpiList').innerHTML=list.length?list.map((k,i)=>`<div class="kpi-row"><span><b>${esc(k.name)}</b><small>${esc(k.comment||'')}</small></span><b>${esc(k.value)} ${esc(k.unit)}</b><span>Obj. ${esc(k.target)} ${esc(k.unit)}</span><span class="badge ${Number(k.value)>=Number(k.target)?'green':'orange'}">${Number(k.value)>=Number(k.target)?'Atteint':'À suivre'}</span><button class="icon-btn" data-kpi-remove="${i}">×</button></div>`).join(''):`<div class="empty-inline">Aucun KPI personnalisé. Ajoutez-en pour illustrer le suivi métier.</div>`;
   document.querySelectorAll('[data-kpi-remove]').forEach(b=>b.addEventListener('click',()=>{const old=getInternal(siren),k=[...(old.kpis||[])];k.splice(Number(b.dataset.kpiRemove),1);internal[siren]={...old,kpis:k};saveInternal();renderCompanyKpis(siren);}));
 }
-function openKpiModal(siren){document.getElementById('kpiCompanySiren').value=siren;document.getElementById('kpiModalOverlay').classList.add('open')}
+function openKpiModal(targets){kpiTargets=Array.isArray(targets)?targets:[targets];document.getElementById('kpiModalContext').textContent=kpiTargets.length===1?'Ce KPI sera ajouté à une entreprise.':`Ce KPI sera ajouté à ${kpiTargets.length} entreprises sélectionnées.`;document.getElementById('kpiModalOverlay').classList.add('open')}
 function closeKpiModal(){document.getElementById('kpiModalOverlay').classList.remove('open');document.getElementById('kpiForm').reset()}
+
+function loadTrainings(){try{const value=JSON.parse(localStorage.getItem(TRAININGS_KEY));return Array.isArray(value)?value:[]}catch{return []}}
+function trainingResponseCount(id){try{const value=JSON.parse(localStorage.getItem('parfait_training_responses_'+id));return Array.isArray(value)?value.length:0}catch{return 0}}
+function trainingUrl(training){const url=new URL('inscription.html',location.href);url.searchParams.set('id',training.id);url.searchParams.set('formation',training.title);return url.href}
+function renderTrainings(){
+  const trainings=loadTrainings();
+  document.getElementById('trainingList').innerHTML=trainings.length?trainings.map(training=>{
+    const count=trainingResponseCount(training.id);
+    return `<article class="training-item"><div><h3>${esc(training.title)}</h3><p>${count} réponse${count>1?'s':''} sur cet appareil</p><input readonly aria-label="Lien pour ${esc(training.title)}" value="${esc(trainingUrl(training))}"></div><div class="training-actions"><button class="btn ghost" data-copy-training="${training.id}">Copier le lien</button><a class="btn primary" href="${esc(trainingUrl(training))}" target="_blank" rel="noopener">Voir le formulaire</a></div></article>`
+  }).join(''):'<div class="empty-inline">Aucun formulaire créé pour le moment.</div>';
+  document.querySelectorAll('[data-copy-training]').forEach(button=>button.addEventListener('click',async()=>{const training=trainings.find(item=>item.id===button.dataset.copyTraining);if(!training)return;try{await navigator.clipboard.writeText(trainingUrl(training));button.textContent='Lien copié'}catch{const input=button.closest('.training-item').querySelector('input');input.select();document.execCommand('copy');button.textContent='Lien copié'}}));
+}
 
 function setupGlobal(){
   document.getElementById('drawerClose').addEventListener('click',closeDrawer); document.getElementById('drawerOverlay').addEventListener('click',closeDrawer);
   document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal); document.getElementById('kpiCancel').addEventListener('click',closeKpiModal);
-  document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const siren=document.getElementById('kpiCompanySiren').value,old=getInternal(siren),kpis=[...(old.kpis||[])];kpis.push({name:document.getElementById('kpiName').value,unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value});internal[siren]={...old,kpis};saveInternal();closeKpiModal();renderCompanyKpis(siren);});
+  document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const kpi={name:document.getElementById('kpiName').value.trim(),unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value.trim()};kpiTargets.forEach(siren=>{const old=getInternal(siren);internal[siren]={...old,kpis:[...(old.kpis||[]),{...kpi}]}});saveInternal();const currentSiren=currentCompany?.siren;closeKpiModal();if(currentSiren&&kpiTargets.includes(currentSiren))renderCompanyKpis(currentSiren);selectedCompanies.clear();renderCompanies();});
   document.getElementById('performanceFilter').addEventListener('change',renderPerformance);
+  document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim();if(!title)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }
 function closeDrawer(){document.getElementById('drawerOverlay').classList.remove('open');document.getElementById('companyDrawer').classList.remove('open')}
 
-setupNav(); setupCompanyFilters(); setupGlobal(); renderOverview(); renderPerformance(); renderMap(); renderConnections();
+setupNav(); setupCompanyFilters(); setupGlobal(); renderOverview(); renderPerformance(); renderMap(); renderConnections(); renderTrainings();

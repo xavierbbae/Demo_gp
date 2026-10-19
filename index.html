@@ -23,6 +23,7 @@
         <button class="nav-item" data-view="performance"><span>↗</span> Performance</button>
         <button class="nav-item" data-view="map"><span>◎</span> Cartographie</button>
         <button class="nav-item" data-view="connections"><span>↻</span> Connexions comptables</button>
+        <button class="nav-item" data-view="registrations"><span>✎</span> Inscriptions formations</button>
       </nav>
 
       <div class="sidebar-bottom">
@@ -100,7 +101,8 @@
           <span class="result-count" id="companyCount"></span>
         </div>
         <div class="panel table-panel">
-          <div class="table-wrap"><table class="company-table"><thead><tr><th>Entreprise</th><th>SIREN</th><th>Activité</th><th>Ville</th><th>Effectif</th><th>CA 2026 simulé</th><th>Évolution</th><th>Statut</th><th></th></tr></thead><tbody id="companiesTable"></tbody></table></div>
+          <div class="bulk-actions"><span id="selectedCount">0 entreprise sélectionnée</span><button class="btn primary" id="bulkKpiBtn" disabled>+ Appliquer un KPI au lot</button><button class="btn ghost" id="clearSelectionBtn" disabled>Effacer la sélection</button></div>
+          <div class="table-wrap"><table class="company-table"><thead><tr><th><input id="selectVisibleCompanies" type="checkbox" aria-label="Sélectionner les entreprises affichées" /></th><th>Entreprise</th><th>SIREN</th><th>Activité</th><th>Ville</th><th>Effectif</th><th>CA 2026 simulé</th><th>Évolution</th><th>Statut</th><th></th></tr></thead><tbody id="companiesTable"></tbody></table></div>
         </div>
       </section>
 
@@ -132,6 +134,21 @@
         <div class="connections-grid" id="connectionsGrid"></div>
         <div class="panel data-flow"><div class="panel-head"><div><h3>Flux cible</h3><p>Exemple d'architecture fonctionnelle</p></div></div><div class="flow-row"><div>Outils comptables<br><small>Sage · Cegid · EBP · ERP</small></div><span>→</span><div>Connecteurs<br><small>API · SFTP · imports</small></div><span>→</span><div>Modèle financier commun<br><small>CA · résultat · cash · KPI</small></div><span>→</span><div>Dashboard groupe<br><small>Temps quasi-réel</small></div></div></div>
       </section>
+
+      <section id="registrationsView" class="view">
+        <div class="notice"><b>Démo statique.</b> Une fois le site publié, le lien ouvre le formulaire sur un autre appareil. Les réponses restent dans le navigateur du répondant : une collecte centralisée demande un service de réception.</div>
+        <div class="panel registration-panel">
+          <div class="panel-head"><div><h3>Créer un lien d’inscription</h3><p>Un formulaire simple à partager pour une formation</p></div></div>
+          <form id="trainingForm" class="form-grid">
+            <label class="full">Nom de la formation<input id="trainingTitle" required maxlength="120" placeholder="Ex. Formation management" /></label>
+            <div class="form-actions full"><button class="btn primary" type="submit">Créer le formulaire</button></div>
+          </form>
+        </div>
+        <div class="panel registration-panel">
+          <div class="panel-head"><div><h3>Formulaires créés</h3><p>Copiez un lien ou ouvrez le formulaire public</p></div></div>
+          <div id="trainingList" class="training-list"></div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -145,7 +162,7 @@
     <div class="modal">
       <div class="modal-head"><h3>Ajouter un KPI</h3><button id="kpiModalClose">×</button></div>
       <form id="kpiForm" class="form-grid">
-        <input type="hidden" id="kpiCompanySiren" />
+        <p class="full modal-context" id="kpiModalContext"></p>
         <label>Nom du KPI<input id="kpiName" required placeholder="Ex. Satisfaction client" /></label>
         <label>Unité<select id="kpiUnit"><option>%</option><option>€</option><option>k€</option><option>M€</option><option>nombre</option><option>jours</option><option>heures</option><option>score</option></select></label>
         <label>Valeur<input id="kpiValue" type="number" step="any" required /></label>
