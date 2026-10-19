@@ -16,6 +16,7 @@ let currentCompany = null;
 const selectedCompanies = new Set();
 let kpiTargets = [];
 const TRAININGS_KEY = 'parfait_trainings_v1';
+const DEFAULT_TRAINING_EMAIL = 'xymapartners.contact@gmail.com';
 
 function loadInternal(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch{return{}} }
 function saveInternal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(internal)); }
@@ -240,13 +241,11 @@ function openKpiModal(targets){kpiTargets=Array.isArray(targets)?targets:[target
 function closeKpiModal(){document.getElementById('kpiModalOverlay').classList.remove('open');document.getElementById('kpiForm').reset()}
 
 function loadTrainings(){try{const value=JSON.parse(localStorage.getItem(TRAININGS_KEY));return Array.isArray(value)?value:[]}catch{return []}}
-function trainingResponseCount(id){try{const value=JSON.parse(localStorage.getItem('parfait_training_responses_'+id));return Array.isArray(value)?value.length:0}catch{return 0}}
-function trainingUrl(training){const url=new URL('inscription.html',location.href);url.searchParams.set('id',training.id);url.searchParams.set('formation',training.title);return url.href}
+function trainingUrl(training){const url=new URL('inscription.html',location.href);url.searchParams.set('id',training.id);url.searchParams.set('formation',training.title);url.searchParams.set('destinataire',training.email||DEFAULT_TRAINING_EMAIL);return url.href}
 function renderTrainings(){
   const trainings=loadTrainings();
   document.getElementById('trainingList').innerHTML=trainings.length?trainings.map(training=>{
-    const count=trainingResponseCount(training.id);
-    return `<article class="training-item"><div><h3>${esc(training.title)}</h3><p>${count} réponse${count>1?'s':''} sur cet appareil</p><input readonly aria-label="Lien pour ${esc(training.title)}" value="${esc(trainingUrl(training))}"></div><div class="training-actions"><button class="btn ghost" data-copy-training="${training.id}">Copier le lien</button><a class="btn primary" href="${esc(trainingUrl(training))}" target="_blank" rel="noopener">Voir le formulaire</a></div></article>`
+    return `<article class="training-item"><div><h3>${esc(training.title)}</h3><p>Réponses envoyées à ${esc(training.email||DEFAULT_TRAINING_EMAIL)}</p><input readonly aria-label="Lien pour ${esc(training.title)}" value="${esc(trainingUrl(training))}"></div><div class="training-actions"><button class="btn ghost" data-copy-training="${esc(training.id)}">Copier le lien</button><a class="btn primary" href="${esc(trainingUrl(training))}" target="_blank" rel="noopener">Voir le formulaire</a></div></article>`
   }).join(''):'<div class="empty-inline">Aucun formulaire créé pour le moment.</div>';
   document.querySelectorAll('[data-copy-training]').forEach(button=>button.addEventListener('click',async()=>{const training=trainings.find(item=>item.id===button.dataset.copyTraining);if(!training)return;try{await navigator.clipboard.writeText(trainingUrl(training));button.textContent='Lien copié'}catch{const input=button.closest('.training-item').querySelector('input');input.select();document.execCommand('copy');button.textContent='Lien copié'}}));
 }
@@ -256,7 +255,7 @@ function setupGlobal(){
   document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal); document.getElementById('kpiCancel').addEventListener('click',closeKpiModal);
   document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const kpi={name:document.getElementById('kpiName').value.trim(),unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value.trim()};kpiTargets.forEach(siren=>{const old=getInternal(siren);internal[siren]={...old,kpis:[...(old.kpis||[]),{...kpi}]}});saveInternal();const currentSiren=currentCompany?.siren;closeKpiModal();if(currentSiren&&kpiTargets.includes(currentSiren))renderCompanyKpis(currentSiren);selectedCompanies.clear();renderCompanies();});
   document.getElementById('performanceFilter').addEventListener('change',renderPerformance);
-  document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim();if(!title)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
+  document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim(),email=document.getElementById('trainingEmail').value.trim();if(!title||!email)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title,email});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }
 function closeDrawer(){document.getElementById('drawerOverlay').classList.remove('open');document.getElementById('companyDrawer').classList.remove('open')}

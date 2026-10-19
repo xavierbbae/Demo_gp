@@ -1,6 +1,6 @@
 GROUPE PARFAIT — DÉMO DASHBOARD
 
-Ouvrir index.html dans un navigateur.
+Publier le dossier sur un site statique ou le servir localement avec `python3 -m http.server 8000`.
 
 Cette démo contient :
 - les sociétés issues du référentiel fourni,
@@ -19,9 +19,9 @@ Cette démo contient :
 IMPORTANT :
 Les CA mensuels, résultats mensuels, objectifs, scores et connexions comptables sont des DONNÉES DE DÉMONSTRATION SIMULÉES. Quand un CA public > 0 existe, il sert de point d'ancrage à la simulation annuelle. Sinon, une base de démonstration est estimée selon la catégorie, le secteur et l'effectif disponible.
 
-Les modifications sont stockées localement dans le navigateur via localStorage.
+Les KPI, notes et formulaires créés sont stockés localement dans le navigateur via localStorage.
 
 FORMULAIRES D'INSCRIPTION :
-Publier index.html, inscription.html, inscription.js, app.js, style.css et data/ sur le même site statique. Le lien créé dans l'onglet « Inscriptions formations » est partageable une fois le site publié. Le formulaire public demande Nom, Prénom et Mail pro. Dans cette démo HTML/CSS/JS, « Envoyer » enregistre la réponse uniquement dans le navigateur du répondant ; le créateur ne la reçoit pas sur son appareil. Pour recevoir de vraies inscriptions, il faut connecter un service de réception ou ajouter un backend. Ne pas utiliser cette démo pour collecter de vraies données personnelles.
+Publier index.html, inscription.html, inscription.js, app.js, style.css et data/ sur le même site statique. Le lien créé dans l'onglet « Inscriptions formations » est partageable une fois le site publié. Le formulaire public demande Nom, Prénom et Mail pro puis transmet la réponse par FormSubmit à l'adresse choisie. L'adresse proposée est xymapartners.contact@gmail.com. Lors de la première soumission, le destinataire doit confirmer le courriel d'activation de FormSubmit ; les réponses sont ensuite acheminées par e-mail. Les anciens liens sans adresse destinataire utilisent l'adresse proposée. Les liens affichent l'adresse de réception dans leur URL. Les données sont traitées par un service tiers ; ne partager le formulaire qu'après validation de ce mode de collecte par le client.
 
 Les notes dites privées n'ont pas d'authentification : toute personne ayant accès au même navigateur peut les consulter. Elles ne sont pas synchronisées entre appareils.
