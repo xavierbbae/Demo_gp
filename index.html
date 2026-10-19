@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Groupe Parfait — Pilotage & Performance</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20261019-3" />
 </head>
 <body>
   <div class="app-shell">
@@ -136,11 +136,12 @@
       </section>
 
       <section id="registrationsView" class="view">
-        <div class="notice"><b>Démo statique.</b> Une fois le site publié, le lien ouvre le formulaire sur un autre appareil. Les réponses restent dans le navigateur du répondant : une collecte centralisée demande un service de réception.</div>
+        <div class="notice"><b>Inscriptions par e-mail.</b> Les réponses sont envoyées à l’adresse indiquée via FormSubmit. Lors du premier envoi, confirmez l’e-mail d’activation reçu à cette adresse.</div>
         <div class="panel registration-panel">
           <div class="panel-head"><div><h3>Créer un lien d’inscription</h3><p>Un formulaire simple à partager pour une formation</p></div></div>
           <form id="trainingForm" class="form-grid">
             <label class="full">Nom de la formation<input id="trainingTitle" required maxlength="120" placeholder="Ex. Formation management" /></label>
+            <label class="full">Adresse recevant les inscriptions<input id="trainingEmail" type="email" required maxlength="254" value="xymapartners.contact@gmail.com" /></label>
             <div class="form-actions full"><button class="btn primary" type="submit">Créer le formulaire</button></div>
           </form>
         </div>
@@ -174,6 +175,6 @@
   </div>
 
   <script src="data/companies-data.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=20261019-3"></script>
 </body>
 </html>

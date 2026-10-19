@@ -1,34 +1,45 @@
 const params = new URLSearchParams(location.search);
 const formationId = params.get('id');
 const formationTitle = params.get('formation');
+const recipient = params.get('destinataire') || 'xymapartners.contact@gmail.com';
 const form = document.getElementById('registrationForm');
 const message = document.getElementById('registrationMessage');
 
 document.getElementById('formationTitle').textContent = formationTitle || 'Formation indisponible';
-if (!formationId || !formationTitle || formationId.length > 100 || formationTitle.length > 120) {
+if (!formationId || !formationTitle || !recipient || formationId.length > 100 || formationTitle.length > 120 || recipient.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
   form.hidden = true;
   message.textContent = 'Ce lien de formation est incomplet.';
 } else {
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
-    const key = 'parfait_training_responses_' + formationId;
-    let responses = [];
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    message.textContent = 'Envoi en cours…';
     try {
-      const stored = JSON.parse(localStorage.getItem(key));
-      if (Array.isArray(stored)) responses = stored;
-    } catch {}
-    responses.push({
-      lastName: document.getElementById('lastName').value.trim(),
-      firstName: document.getElementById('firstName').value.trim(),
-      workEmail: document.getElementById('workEmail').value.trim(),
-      submittedAt: new Date().toISOString()
-    });
-    try {
-      localStorage.setItem(key, JSON.stringify(responses));
+      const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(recipient), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify({
+          _subject: 'Inscription formation : ' + formationTitle,
+          _replyto: document.getElementById('workEmail').value.trim(),
+          Formation: formationTitle,
+          Nom: document.getElementById('lastName').value.trim(),
+          'Prénom': document.getElementById('firstName').value.trim(),
+          email: document.getElementById('workEmail').value.trim()
+        })
+      });
+      const result = await response.json();
+      if (response.ok && /activat/i.test(result.message || '')) {
+        form.hidden = true;
+        message.textContent = 'Inscription reçue. L’organisateur doit confirmer l’e-mail d’activation avant de recevoir les réponses.';
+        return;
+      }
+      if (!response.ok || (result.success !== true && result.success !== 'true')) throw new Error('Submission failed');
       form.hidden = true;
-      message.textContent = 'Réponse enregistrée sur cet appareil. Pour une inscription réelle, contactez l’organisateur.';
+      message.textContent = 'Inscription envoyée. Merci !';
     } catch {
-      message.textContent = 'Enregistrement impossible sur cet appareil. Contactez l’organisateur.';
+      message.textContent = 'L’envoi a échoué. Vérifiez votre connexion et réessayez.';
+      button.disabled = false;
     }
   });
 }
