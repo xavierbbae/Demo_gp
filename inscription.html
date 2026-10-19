@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscription à une formation — Groupe Parfait</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="public-page">
+  <main class="public-card panel">
+    <div class="public-brand"><div class="brand-mark">P</div><strong>GROUPE PARFAIT</strong></div>
+    <p class="eyebrow">INSCRIPTION FORMATION</p>
+    <h1 id="formationTitle"></h1>
+    <p class="muted">Renseignez vos coordonnées professionnelles pour vous inscrire.</p>
+    <form id="registrationForm" class="public-form">
+      <label for="lastName">Nom<input id="lastName" name="lastName" autocomplete="family-name" required maxlength="80" /></label>
+      <label for="firstName">Prénom<input id="firstName" name="firstName" autocomplete="given-name" required maxlength="80" /></label>
+      <label for="workEmail">Mail pro<input id="workEmail" name="workEmail" type="email" autocomplete="email" required maxlength="254" /></label>
+      <button class="btn primary" type="submit">Envoyer</button>
+    </form>
+    <p id="registrationMessage" role="status"></p>
+    <p class="public-disclaimer">Démonstration : la réponse est enregistrée uniquement dans ce navigateur. Elle n’est pas transmise à l’organisateur.</p>
+  </main>
+  <script src="inscription.js"></script>
+</body>
+</html>
