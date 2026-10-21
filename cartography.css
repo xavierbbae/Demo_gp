@@ -3,10 +3,12 @@
 .map-module-header h3{margin:0;font-size:17px}
 .map-module-header p{margin:3px 0 0;color:var(--muted);font-size:12px}
 .map-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.map-controls input{width:250px;max-width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;background:#fff;color:var(--text)}
+.map-controls input[type="search"]{width:250px;max-width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;background:#fff;color:var(--text)}
 .map-mode-switch{display:flex;padding:3px;background:#f3ebe4;border:1px solid var(--line);border-radius:10px}
 .map-mode-button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:650;font-size:12px;padding:8px 11px;border-radius:7px;cursor:pointer;white-space:nowrap}
 .map-mode-button.active{background:var(--dark);color:#fff}
+.map-sample-toggle{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.map-sample-toggle input{accent-color:var(--accent)}
 .map-summary{display:flex;gap:0;flex-wrap:wrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 20px}
 .map-summary-item{display:flex;align-items:baseline;gap:7px;padding:0 18px;border-right:1px solid var(--line);font-size:11px;color:var(--muted)}
 .map-summary-item:first-child{padding-left:0}.map-summary-item:last-child{border-right:0}
@@ -34,6 +36,7 @@
 .map-node-track{height:4px;border-radius:8px;background:#eee7e1;overflow:hidden}.map-node-track span{display:block;height:100%;background:var(--map-color,var(--accent));border-radius:8px}
 .map-company{border:1px solid var(--line);background:#fff;padding:10px;display:grid;gap:3px}
 .map-company strong{font-size:11px;overflow-wrap:anywhere}.map-company small{font-size:10px;color:var(--muted)}
+.map-sample-badge{justify-self:start;border-radius:5px;padding:2px 5px;background:#f6e9dd;color:#80543a;font-size:9px;font-weight:700}
 .map-empty{min-height:190px;border:1px dashed #d8cabd;border-radius:12px;background:#ffffffac;padding:24px 15px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:var(--muted);font-size:11px}
 .map-empty b{font-size:12px;color:var(--text);margin-bottom:5px}
 .map-insights{border-left:1px solid var(--line);background:#fff;padding:20px;min-width:0}
@@ -46,6 +49,6 @@
 .map-insight-metrics small,.map-insight-metrics b,.map-insight-kpi b,.map-insight-kpi span{display:block}.map-insight-metrics small,.map-insight-kpi span{font-size:10px;color:var(--muted)}
 .map-insight-metrics b{font-size:13px}.map-insight-kpis{display:grid;gap:7px}
 @media(max-width:1200px){.map-workspace{grid-template-columns:minmax(0,1fr)}.map-insights{border-left:0;border-top:1px solid var(--line)}.map-insight-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:800px){.map-module-header{align-items:stretch;flex-direction:column}.map-controls input{flex:1;min-width:220px}.map-canvas{gap:18px}.map-column{flex-basis:165px}.map-column.software{flex-basis:170px}.map-column.companies{flex-basis:220px}}
-@media(max-width:520px){.map-summary-item{padding:4px 11px}.map-summary-item b{font-size:17px}.map-summary-item:first-child{padding-left:0}.map-controls input{width:100%}.map-mode-switch{width:100%}.map-mode-button{flex:1}.map-insight-list{grid-template-columns:1fr}}
+@media(max-width:800px){.map-module-header{align-items:stretch;flex-direction:column}.map-controls input[type="search"]{flex:1;min-width:220px}.map-canvas{gap:18px}.map-column{flex-basis:165px}.map-column.software{flex-basis:170px}.map-column.companies{flex-basis:220px}}
+@media(max-width:520px){.map-summary-item{padding:4px 11px}.map-summary-item b{font-size:17px}.map-summary-item:first-child{padding-left:0}.map-controls input[type="search"]{width:100%}.map-mode-switch{width:100%}.map-mode-button{flex:1}.map-insight-list{grid-template-columns:1fr}}
 @media(max-width:700px){.map-canvas{display:grid;grid-template-columns:minmax(0,1fr);overflow:visible;gap:17px}.map-column,.map-column.software,.map-column.companies{width:auto;min-width:0}.map-column:not(:first-child)::before{left:20px;top:-17px;width:0;height:15px;border-top:0;border-left:2px solid #d7c9bd}.map-root{min-height:105px}.map-node-list{max-height:260px}.map-column.companies .map-node-list{max-height:330px}}
