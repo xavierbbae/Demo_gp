@@ -42,3 +42,27 @@
 .public-disclaimer{border-top:1px solid var(--line);padding-top:14px;margin:24px 0 0;color:var(--muted);font-size:11px}
 #registrationMessage{color:var(--green);font-weight:650}
 @media(max-width:760px){.training-item{display:block}.training-actions{margin-top:10px}.drawer-tabs{padding:12px 20px}}
+.map-help{margin:0 20px;color:var(--muted);font-size:11px}
+.group-node{min-width:0;background:#fcfaf8}
+.group-node.expanded{grid-column:1/-1;background:#fff;border-color:#d9bda7}
+.group-node-head{width:100%;border:0;background:none;padding:0;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;color:var(--text);cursor:pointer;font:inherit}
+.group-node-head strong,.group-node-head small{display:block}
+.group-node-head strong{font-size:14px}
+.group-node-head small{font-size:11px;color:var(--muted);font-weight:400}
+.group-node-head>span:last-child{font-size:24px;line-height:1;color:var(--accent)}
+.group-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;color:var(--muted);font-size:11px}
+.group-stats b{color:var(--text)}
+.group-details{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+.group-details h4{margin:16px 0 8px}
+.group-detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.group-detail-stats div,.group-kpis>div{border:1px solid var(--line);border-radius:9px;padding:10px;background:#fcfaf8}
+.group-detail-stats small,.group-detail-stats b,.group-kpis b,.group-kpis span{display:block}
+.group-detail-stats small,.group-kpis span{font-size:11px;color:var(--muted)}
+.group-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.group-companies{max-height:350px;overflow:auto}
+.other-software-list{display:grid;gap:7px;margin-bottom:12px}
+.software-row{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+.software-row b,.software-row small{display:block}
+.software-row small{color:var(--muted)}
+#internalSaveStatus{align-self:center;font-size:11px;color:var(--green)}
+@media(max-width:760px){.group-detail-stats,.group-kpis{grid-template-columns:1fr}.group-map{padding:14px}.panel-head:has(#mapMode){align-items:stretch;flex-direction:column}}

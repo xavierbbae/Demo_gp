@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Groupe Parfait — Pilotage & Performance</title>
-  <link rel="stylesheet" href="style.css?v=20261019-3" />
+  <link rel="stylesheet" href="style.css?v=20261021-1" />
 </head>
 <body>
   <div class="app-shell">
@@ -71,7 +71,7 @@
           </article>
 
           <article class="panel span-8">
-            <div class="panel-head"><div><h3>Entreprises par secteur</h3><p>Répartition selon l'activité principale</p></div></div>
+            <div class="panel-head"><div><h3>Entreprises par catégorie groupe</h3><p>Classement interne à confirmer sur chaque fiche</p></div></div>
             <div id="sectorBars" class="sector-bars"></div>
           </article>
 
@@ -96,13 +96,14 @@
         <div class="toolbar panel">
           <div class="search-box"><span>⌕</span><input id="companySearch" type="search" placeholder="Rechercher une entreprise, un SIREN, une ville…" /></div>
           <select id="statusFilter"><option value="all">Tous les statuts</option><option value="A">Actives</option><option value="C">Fermées</option></select>
-          <select id="sectorFilter"><option value="all">Tous les secteurs</option></select>
+          <select id="sectorFilter" aria-label="Catégorie groupe"><option value="all">Toutes les catégories</option><option>Immobilier</option><option>Automobile</option><option>Alimentaire</option><option>Industrie</option><option value="">À classer</option></select>
+          <select id="accountingFilter" aria-label="Logiciel comptable"><option value="all">Tous les logiciels comptables</option></select>
           <select id="managerFilter"><option value="all">Tous les dirigeants</option><option value="robert">Robert Parfait</option><option value="kevin">Kévin Parfait</option><option value="both">Robert + Kévin</option></select>
           <span class="result-count" id="companyCount"></span>
         </div>
         <div class="panel table-panel">
           <div class="bulk-actions"><span id="selectedCount">0 entreprise sélectionnée</span><button class="btn primary" id="bulkKpiBtn" disabled>+ Appliquer un KPI au lot</button><button class="btn ghost" id="clearSelectionBtn" disabled>Effacer la sélection</button></div>
-          <div class="table-wrap"><table class="company-table"><thead><tr><th><input id="selectVisibleCompanies" type="checkbox" aria-label="Sélectionner les entreprises affichées" /></th><th>Entreprise</th><th>SIREN</th><th>Activité</th><th>Ville</th><th>Effectif</th><th>CA 2026 simulé</th><th>Évolution</th><th>Statut</th><th></th></tr></thead><tbody id="companiesTable"></tbody></table></div>
+          <div class="table-wrap"><table class="company-table"><thead><tr><th><input id="selectVisibleCompanies" type="checkbox" aria-label="Sélectionner les entreprises affichées" /></th><th>Entreprise</th><th>SIREN</th><th>Catégorie groupe</th><th>Logiciel comptable</th><th>Activité</th><th>Ville</th><th>Effectif</th><th>CA 2026 simulé</th><th>Évolution</th><th>Statut</th><th></th></tr></thead><tbody id="companiesTable"></tbody></table></div>
         </div>
       </section>
 
@@ -120,7 +121,8 @@
 
       <section id="mapView" class="view">
         <div class="panel">
-          <div class="panel-head"><div><h3>Cartographie simplifiée du groupe</h3><p>Regroupement automatique par grande famille d'activité</p></div></div>
+          <div class="panel-head"><div><h3>Cartographie du groupe</h3><p>Cliquez sur une tuile pour afficher ses entreprises et ses KPI</p></div><select id="mapMode" aria-label="Regrouper la cartographie"><option value="category">Par catégorie groupe</option><option value="accounting">Par logiciel comptable</option><option value="softwareType">Par type de logiciel</option><option value="softwareName">Par autre logiciel</option></select></div>
+          <p class="map-help">Les catégories déduites de l’activité sont des suggestions. Vérifiez-les dans la fiche de chaque entreprise. Les KPI financiers restent simulés.</p>
           <div id="groupMap" class="group-map"></div>
         </div>
       </section>
@@ -175,6 +177,6 @@
   </div>
 
   <script src="data/companies-data.js"></script>
-  <script src="app.js?v=20261019-3"></script>
+  <script src="app.js?v=20261021-1"></script>
 </body>
 </html>
