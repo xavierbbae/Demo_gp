@@ -66,3 +66,7 @@
 .software-row small{color:var(--muted)}
 #internalSaveStatus{align-self:center;font-size:11px;color:var(--green)}
 @media(max-width:760px){.group-detail-stats,.group-kpis{grid-template-columns:1fr}.group-map{padding:14px}.panel-head:has(#mapMode){align-items:stretch;flex-direction:column}}
+.toolbar{flex-wrap:wrap}
+.toolbar .search-box{flex:1 1 100%;min-width:0}
+.toolbar select{flex:1 1 165px;min-width:0;max-width:100%}
+.toolbar .result-count{margin-left:auto}

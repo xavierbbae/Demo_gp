@@ -11,6 +11,7 @@ Cette démo contient :
 - des KPI et données internes modifiables dans le navigateur,
 - quatre catégories groupe (Immobilier, Automobile, Alimentaire, Industrie) à confirmer par entreprise,
 - un logiciel comptable et plusieurs autres logiciels/types renseignables par entreprise, avec choix courants ou saisie libre,
+- les types de logiciels saisis librement sont ensuite proposés dans le menu déroulant des autres entreprises sur le même navigateur,
 - une cartographie filtrable par catégorie, logiciel comptable, type ou nom d'autre logiciel ; chaque tuile s'ouvre sur les entreprises et KPI du groupe,
 - la sélection de plusieurs entreprises et l'ajout d'un même KPI au lot,
 - un onglet de note privée par entreprise (stockée sur cet appareil),

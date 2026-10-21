@@ -20,6 +20,7 @@ const DEFAULT_TRAINING_EMAIL = 'xymapartners.contact@gmail.com';
 const groupCategories = ['Immobilier', 'Automobile', 'Alimentaire', 'Industrie'];
 const accountingSoftwareOptions = ['Sage', 'Cegid', 'Pennylane', 'EBP', 'Odoo', 'SAP', 'Oracle NetSuite', 'Microsoft Dynamics', 'QuickBooks', 'ACD'];
 const softwareTypeOptions = ['Gestion commerciale', 'ERP', 'CRM', 'Paie / RH', 'Stocks', 'Gestion immobilière', 'Formation'];
+const SOFTWARE_TYPES_KEY = 'parfait_software_types_v1';
 const otherSoftwareOptions = ['Odoo', 'SAP', 'Microsoft Dynamics', 'Salesforce', 'Silae', 'PayFit', 'Shopify', 'Monday.com', 'Excel'];
 let expandedMapGroup = null;
 
@@ -46,6 +47,19 @@ function groupCategory(c){
 }
 function accountingSoftware(c){return getInternal(c.siren).accountingSoftware||''}
 function otherSoftware(c){const list=getInternal(c.siren).otherSoftware;return Array.isArray(list)?list.filter(item=>item&&item.type&&item.name):[]}
+function availableSoftwareTypes(){
+  let saved=[];
+  try{const value=JSON.parse(localStorage.getItem(SOFTWARE_TYPES_KEY));if(Array.isArray(value))saved=value}catch{}
+  const assigned=Object.values(internal).flatMap(record=>Array.isArray(record?.otherSoftware)?record.otherSoftware.map(item=>item?.type):[]);
+  return [...new Set([...softwareTypeOptions,...saved,...assigned].filter(type=>typeof type==='string'&&type.trim()).map(type=>type.trim()))];
+}
+function registerSoftwareType(type){
+  const existing=availableSoftwareTypes().find(value=>value.toLowerCase()===type.toLowerCase());
+  if(existing)return existing;
+  const saved=availableSoftwareTypes().filter(value=>!softwareTypeOptions.includes(value));
+  localStorage.setItem(SOFTWARE_TYPES_KEY,JSON.stringify([...saved,type]));
+  return type;
+}
 function softwareOptions(options,selected){return options.map(value=>`<option value="${esc(value)}" ${selected===value?'selected':''}>${esc(value)}</option>`).join('')}
 function seeded(s, mod=1000){return [...String(s)].reduce((a,ch,i)=>a+(ch.charCodeAt(0)*(i+3)),17)%mod}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
@@ -277,7 +291,7 @@ function openCompany(siren){
       <div class="section-title">Autres logiciels utilisés</div>
       <div id="otherSoftwareList" class="other-software-list"></div>
       <form class="edit-form" id="otherSoftwareForm">
-        <label>Type de logiciel<select id="otherTypeSelect" required><option value="">Choisir un type</option>${softwareOptions(softwareTypeOptions,'')}<option value="other">Autre type…</option></select></label>
+        <label>Type de logiciel<select id="otherTypeSelect" required><option value="">Choisir un type</option>${softwareOptions(availableSoftwareTypes(),'')}<option value="other">Autre type…</option></select></label>
         <label>Logiciel<select id="otherNameSelect" required><option value="">Choisir un logiciel</option>${softwareOptions(otherSoftwareOptions,'')}<option value="other">Autre logiciel…</option></select></label>
         <label id="otherTypeCustomLabel" hidden>Autre type<input id="otherTypeCustom" maxlength="80" placeholder="Ex. Gestion des interventions"></label>
         <label id="otherNameCustomLabel" hidden>Autre logiciel<input id="otherNameCustom" maxlength="80" placeholder="Nom du logiciel"></label>
@@ -307,14 +321,16 @@ function openCompany(siren){
   document.getElementById('otherSoftwareForm').addEventListener('submit',event=>{
     event.preventDefault();
     const typeSelect=document.getElementById('otherTypeSelect').value,nameSelect=document.getElementById('otherNameSelect').value;
-    const type=typeSelect==='other'?document.getElementById('otherTypeCustom').value.trim():typeSelect;
+    const customType=typeSelect==='other'?document.getElementById('otherTypeCustom').value.trim():'';
+    const type=typeSelect==='other'?customType:typeSelect;
     const name=nameSelect==='other'?document.getElementById('otherNameCustom').value.trim():nameSelect;
     if(!type||!name)return;
+    const savedType=customType?registerSoftwareType(customType):type;
     const saved=getInternal(c.siren),software=[...otherSoftware(c)];
-    if(!software.some(item=>item.type===type&&item.name===name))software.push({type,name});
+    if(!software.some(item=>item.type===savedType&&item.name===name))software.push({type:savedType,name});
     internal[c.siren]={...saved,otherSoftware:software};saveInternal();
     renderOtherSoftwareList(c.siren);renderCompanies();renderMap();
-    event.target.reset();document.getElementById('otherTypeSelect').dispatchEvent(new Event('change'));document.getElementById('otherNameSelect').dispatchEvent(new Event('change'));
+    event.target.reset();document.getElementById('otherTypeSelect').innerHTML='<option value="">Choisir un type</option>'+softwareOptions(availableSoftwareTypes(),'')+'<option value="other">Autre type…</option>';document.getElementById('otherTypeSelect').dispatchEvent(new Event('change'));document.getElementById('otherNameSelect').dispatchEvent(new Event('change'));
   });
   document.getElementById('addKpiBtn').addEventListener('click',()=>openKpiModal(c.siren));
   document.querySelectorAll('[data-drawer-tab]').forEach(button=>button.addEventListener('click',()=>{const notes=button.dataset.drawerTab==='notes';document.getElementById('companyDetailsPanel').hidden=notes;document.getElementById('companyNotesPanel').hidden=!notes;document.querySelectorAll('[data-drawer-tab]').forEach(tab=>tab.classList.toggle('active',tab===button))}));
