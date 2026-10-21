@@ -12,7 +12,7 @@ Cette démo contient :
 - quatre catégories groupe (Immobilier, Automobile, Alimentaire, Industrie) à confirmer par entreprise,
 - un logiciel comptable et plusieurs autres logiciels/types renseignables par entreprise, avec choix courants ou saisie libre,
 - les types de logiciels saisis librement sont ensuite proposés dans le menu déroulant des autres entreprises sur le même navigateur,
-- une cartographie filtrable par catégorie, logiciel comptable, type ou nom d'autre logiciel ; chaque tuile s'ouvre sur les entreprises et KPI du groupe,
+- une cartographie interactive en colonnes inspirée de la maquette fournie : groupe → catégorie → entreprises ou famille logicielle → logiciel → entreprises, avec recherche, répartition et KPI du groupe,
 - la sélection de plusieurs entreprises et l'ajout d'un même KPI au lot,
 - un onglet de note privée par entreprise (stockée sur cet appareil),
 - un thème marron,
@@ -24,6 +24,8 @@ IMPORTANT :
 Les CA mensuels, résultats mensuels, objectifs, scores et connexions comptables sont des DONNÉES DE DÉMONSTRATION SIMULÉES. Quand un CA public > 0 existe, il sert de point d'ancrage à la simulation annuelle. Sinon, une base de démonstration est estimée selon la catégorie, le secteur et l'effectif disponible.
 
 Les catégories, logiciels, KPI, notes et formulaires créés sont stockés localement dans le navigateur via localStorage. Les catégories proposées automatiquement à partir de l'activité publique ne sont que des suggestions. Le référentiel fourni contient moins de 200 entreprises : il faut importer les entreprises manquantes pour refléter le groupe complet.
+
+La cartographie utilise uniquement les entreprises et les logiciels du dashboard : elle n'importe pas les pôles ou affectations de logiciels fictifs de la maquette. « Non renseigné » désigne les entreprises dont le logiciel comptable reste à saisir et n'est pas compté comme logiciel utilisé.
 
 FORMULAIRES D'INSCRIPTION :
 Publier index.html, inscription.html, inscription.js, app.js, style.css et data/ sur le même site statique. Le lien créé dans l'onglet « Inscriptions formations » est partageable une fois le site publié. Le formulaire public demande Nom, Prénom et Mail pro puis transmet la réponse par FormSubmit à l'adresse choisie. L'adresse proposée est xymapartners.contact@gmail.com. Lors de la première soumission, le destinataire doit confirmer le courriel d'activation de FormSubmit ; les réponses sont ensuite acheminées par e-mail. Les anciens liens sans adresse destinataire utilisent l'adresse proposée. Les liens affichent l'adresse de réception dans leur URL. Les données sont traitées par un service tiers ; ne partager le formulaire qu'après validation de ce mode de collecte par le client.

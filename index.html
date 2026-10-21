@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Groupe Parfait — Pilotage & Performance</title>
-  <link rel="stylesheet" href="style.css?v=20261021-2" />
+  <link rel="stylesheet" href="style.css?v=20261021-3" />
+  <link rel="stylesheet" href="cartography.css?v=20261021-3" />
 </head>
 <body>
   <div class="app-shell">
@@ -120,10 +121,23 @@
       </section>
 
       <section id="mapView" class="view">
-        <div class="panel">
-          <div class="panel-head"><div><h3>Cartographie du groupe</h3><p>Cliquez sur une tuile pour afficher ses entreprises et ses KPI</p></div><select id="mapMode" aria-label="Regrouper la cartographie"><option value="category">Par catégorie groupe</option><option value="accounting">Par logiciel comptable</option><option value="softwareType">Par type de logiciel</option><option value="softwareName">Par autre logiciel</option></select></div>
-          <p class="map-help">Les catégories déduites de l’activité sont des suggestions. Vérifiez-les dans la fiche de chaque entreprise. Les KPI financiers restent simulés.</p>
-          <div id="groupMap" class="group-map"></div>
+        <div class="panel map-module">
+          <div class="map-module-header">
+            <div><h3>Cartographie du groupe</h3><p>Explorez les catégories, les logiciels et les entreprises du référentiel.</p></div>
+            <div class="map-controls">
+              <input id="mapSearch" type="search" placeholder="Entreprise, logiciel, catégorie…" aria-label="Rechercher dans la cartographie" />
+              <div class="map-mode-switch" role="group" aria-label="Vue de la cartographie">
+                <button type="button" class="map-mode-button active" data-map-mode="category" aria-pressed="true">Par catégorie</button>
+                <button type="button" class="map-mode-button" data-map-mode="software" aria-pressed="false">Par logiciel</button>
+              </div>
+            </div>
+          </div>
+          <div id="mapSummary" class="map-summary"></div>
+          <div class="map-disclaimer">Les catégories déduites de l’activité sont à confirmer. Les logiciels non renseignés ne sont pas inventés ; les montants et scores sont simulés.</div>
+          <div class="map-workspace">
+            <div id="mapCanvas" class="map-canvas" aria-label="Cartographie interactive"></div>
+            <aside id="mapInsights" class="map-insights" aria-label="Analyse de la sélection"></aside>
+          </div>
         </div>
       </section>
 
@@ -177,6 +191,6 @@
   </div>
 
   <script src="data/companies-data.js"></script>
-  <script src="app.js?v=20261021-2"></script>
+  <script src="app.js?v=20261021-3"></script>
 </body>
 </html>
