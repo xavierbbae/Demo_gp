@@ -17,6 +17,11 @@ const selectedCompanies = new Set();
 let kpiTargets = [];
 const TRAININGS_KEY = 'parfait_trainings_v1';
 const DEFAULT_TRAINING_EMAIL = 'xymapartners.contact@gmail.com';
+const groupCategories = ['Immobilier', 'Automobile', 'Alimentaire', 'Industrie'];
+const accountingSoftwareOptions = ['Sage', 'Cegid', 'Pennylane', 'EBP', 'Odoo', 'SAP', 'Oracle NetSuite', 'Microsoft Dynamics', 'QuickBooks', 'ACD'];
+const softwareTypeOptions = ['Gestion commerciale', 'ERP', 'CRM', 'Paie / RH', 'Stocks', 'Gestion immobilière', 'Formation'];
+const otherSoftwareOptions = ['Odoo', 'SAP', 'Microsoft Dynamics', 'Salesforce', 'Silae', 'PayFit', 'Shopify', 'Monday.com', 'Excel'];
+let expandedMapGroup = null;
 
 function loadInternal(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch{return{}} }
 function saveInternal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(internal)); }
@@ -28,6 +33,20 @@ function sector(c){return sectionNames[c.section_activite_principale]||'Autres /
 function employeeLabel(c){return employeeRanges[c.tranche_effectif_salarie]||c.tranche_effectif_salarie||'N/D'}
 function managerLabel(c){if(c.dirigeant_robert&&c.dirigeant_kevin)return 'Robert & Kévin Parfait';if(c.dirigeant_robert)return 'Robert Parfait';if(c.dirigeant_kevin)return 'Kévin Parfait';return '—'}
 function getInternal(siren){return internal[siren]||{}}
+function groupCategory(c){
+  const saved=getInternal(c.siren);
+  const chosen=saved.groupCategory??saved.categorie_groupe;
+  if(chosen!==undefined)return groupCategories.find(category=>category.toLowerCase()===String(chosen).trim().toLowerCase())||'';
+  const code=c.activite_principale||'';
+  if(code.startsWith('68.'))return 'Immobilier';
+  if(code.startsWith('45.')||code.startsWith('77.11'))return 'Automobile';
+  if(code.startsWith('10.')||code.startsWith('46.3')||code.startsWith('47.11')||code.startsWith('47.2')||code.startsWith('56.'))return 'Alimentaire';
+  if(['B','C','D','E'].includes(c.section_activite_principale))return 'Industrie';
+  return '';
+}
+function accountingSoftware(c){return getInternal(c.siren).accountingSoftware||''}
+function otherSoftware(c){const list=getInternal(c.siren).otherSoftware;return Array.isArray(list)?list.filter(item=>item&&item.type&&item.name):[]}
+function softwareOptions(options,selected){return options.map(value=>`<option value="${esc(value)}" ${selected===value?'selected':''}>${esc(value)}</option>`).join('')}
 function seeded(s, mod=1000){return [...String(s)].reduce((a,ch,i)=>a+(ch.charCodeAt(0)*(i+3)),17)%mod}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 
@@ -119,7 +138,7 @@ function renderOverview(){
   document.getElementById('financialTop').innerHTML=companies.filter(c=>c.etat_administratif==='A').map(c=>({c,f:simulatedFinance(c)})).sort((a,b)=>b.f.ytd-a.f.ytd).slice(0,8).map(({c,f})=>`<tr data-siren="${c.siren}"><td><div class="company-name">${esc(c.nom_complet)}</div><div class="company-sub">${esc(sector(c))}</div></td><td class="money">${fmtMoney(f.ytd)}</td><td class="money ${f.trend>=0?'positive':'negative'}">${f.trend>=0?'+':''}${f.trend.toFixed(1)} %</td><td class="money">${fmtMoney(f.monthly.slice(2).reduce((s,m)=>s+m.result,0))}</td></tr>`).join('');
   document.querySelectorAll('#financialTop tr').forEach(r=>r.addEventListener('click',()=>openCompany(r.dataset.siren)));
 
-  const sec={};companies.forEach(c=>sec[sector(c)]=(sec[sector(c)]||0)+1); const sorted=Object.entries(sec).sort((a,b)=>b[1]-a[1]).slice(0,7), max=sorted[0]?.[1]||1;
+  const sec={};companies.forEach(c=>{const category=groupCategory(c)||'À classer';sec[category]=(sec[category]||0)+1}); const sorted=Object.entries(sec).sort((a,b)=>b[1]-a[1]), max=sorted[0]?.[1]||1;
   document.getElementById('sectorBars').innerHTML=sorted.map(([s,v])=>`<div class="sector-row"><span>${esc(s)}</span><div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%"></div></div><b>${v}</b></div>`).join('');
 
   const connected=Number(localStorage.getItem('parfait_connected_tools')||0);
@@ -127,17 +146,20 @@ function renderOverview(){
 }
 
 function setupCompanyFilters(){
-  const select=document.getElementById('sectorFilter'); [...new Set(companies.map(sector))].sort().forEach(s=>select.insertAdjacentHTML('beforeend',`<option value="${esc(s)}">${esc(s)}</option>`));
-  ['companySearch','statusFilter','sectorFilter','managerFilter'].forEach(id=>document.getElementById(id).addEventListener(id==='companySearch'?'input':'change',renderCompanies));
+  ['companySearch','statusFilter','sectorFilter','accountingFilter','managerFilter'].forEach(id=>document.getElementById(id).addEventListener(id==='companySearch'?'input':'change',renderCompanies));
   document.getElementById('selectVisibleCompanies').addEventListener('change',e=>{document.querySelectorAll('#companiesTable input[data-select-siren]').forEach(input=>{if(e.target.checked)selectedCompanies.add(input.dataset.selectSiren);else selectedCompanies.delete(input.dataset.selectSiren)});renderCompanies()});
   document.getElementById('clearSelectionBtn').addEventListener('click',()=>{selectedCompanies.clear();renderCompanies()});
   document.getElementById('bulkKpiBtn').addEventListener('click',()=>openKpiModal([...selectedCompanies]));
 }
 function renderCompanies(){
-  const q=document.getElementById('companySearch').value.trim().toLowerCase(),st=document.getElementById('statusFilter').value,sec=document.getElementById('sectorFilter').value,mgr=document.getElementById('managerFilter').value;
-  let rows=companies.filter(c=>{ const hay=[c.nom_complet,c.siren,c.siret_siege,c.ville,c.adresse,c.activite_principale].join(' ').toLowerCase(); const okMgr=mgr==='all'||(mgr==='robert'&&c.dirigeant_robert)||(mgr==='kevin'&&c.dirigeant_kevin)||(mgr==='both'&&c.dirigeant_robert&&c.dirigeant_kevin); return (!q||hay.includes(q))&&(st==='all'||c.etat_administratif===st)&&(sec==='all'||sector(c)===sec)&&okMgr; });
+  const q=document.getElementById('companySearch').value.trim().toLowerCase(),st=document.getElementById('statusFilter').value,sec=document.getElementById('sectorFilter').value,accounting=document.getElementById('accountingFilter').value,mgr=document.getElementById('managerFilter').value;
+  const accountingFilter=document.getElementById('accountingFilter');
+  const available=[...new Set(companies.map(accountingSoftware).filter(Boolean))].sort((left,right)=>left.localeCompare(right,'fr'));
+  accountingFilter.innerHTML='<option value="all">Tous les logiciels comptables</option><option value="">Non renseigné</option>'+softwareOptions(available,accounting);
+  accountingFilter.value=available.includes(accounting)||accounting===''?accounting:'all';
+  let rows=companies.filter(c=>{ const hay=[c.nom_complet,c.siren,c.siret_siege,c.ville,c.adresse,c.activite_principale,groupCategory(c),accountingSoftware(c),...otherSoftware(c).flatMap(item=>[item.type,item.name])].join(' ').toLowerCase(); const okMgr=mgr==='all'||(mgr==='robert'&&c.dirigeant_robert)||(mgr==='kevin'&&c.dirigeant_kevin)||(mgr==='both'&&c.dirigeant_robert&&c.dirigeant_kevin); return (!q||hay.includes(q))&&(st==='all'||c.etat_administratif===st)&&(sec==='all'||groupCategory(c)===sec)&&(accountingFilter.value==='all'||accountingSoftware(c)===accountingFilter.value)&&okMgr; });
   document.getElementById('companyCount').textContent=`${rows.length} / ${companies.length} sociétés`;
-  document.getElementById('companiesTable').innerHTML=rows.length?rows.map(c=>{const f=simulatedFinance(c); return `<tr data-siren="${c.siren}"><td><input type="checkbox" data-select-siren="${c.siren}" aria-label="Sélectionner ${esc(c.nom_complet)}" ${selectedCompanies.has(c.siren)?'checked':''}></td><td><div class="company-name">${esc(c.nom_complet)}</div><div class="company-sub">${esc(managerLabel(c))}</div></td><td>${c.siren}</td><td><div>${esc(sector(c))}</div><div class="company-sub">${esc(c.activite_principale||'')}</div></td><td>${esc(c.ville||'N/D')}</td><td>${esc(employeeLabel(c))}</td><td class="money">${fmtMoney(f.ytd)}</td><td class="${f.trend>=0?'positive':'negative'}">${f.trend>=0?'+':''}${f.trend.toFixed(1)} %</td><td><span class="badge ${c.etat_administratif==='A'?'active':'closed'}">${c.etat_administratif==='A'?'Active':'Fermée'}</span></td><td>›</td></tr>`}).join(''):`<tr><td colspan="10" class="empty">Aucune société ne correspond aux filtres.</td></tr>`;
+  document.getElementById('companiesTable').innerHTML=rows.length?rows.map(c=>{const f=simulatedFinance(c); return `<tr data-siren="${c.siren}"><td><input type="checkbox" data-select-siren="${c.siren}" aria-label="Sélectionner ${esc(c.nom_complet)}" ${selectedCompanies.has(c.siren)?'checked':''}></td><td><div class="company-name">${esc(c.nom_complet)}</div><div class="company-sub">${esc(managerLabel(c))}</div></td><td>${c.siren}</td><td>${esc(groupCategory(c)||'À classer')}</td><td>${esc(accountingSoftware(c)||'Non renseigné')}</td><td><div>${esc(sector(c))}</div><div class="company-sub">${esc(c.activite_principale||'')}</div></td><td>${esc(c.ville||'N/D')}</td><td>${esc(employeeLabel(c))}</td><td class="money">${fmtMoney(f.ytd)}</td><td class="${f.trend>=0?'positive':'negative'}">${f.trend>=0?'+':''}${f.trend.toFixed(1)} %</td><td><span class="badge ${c.etat_administratif==='A'?'active':'closed'}">${c.etat_administratif==='A'?'Active':'Fermée'}</span></td><td>›</td></tr>`}).join(''):`<tr><td colspan="12" class="empty">Aucune société ne correspond aux filtres.</td></tr>`;
   document.querySelectorAll('#companiesTable tr[data-siren]').forEach(row=>row.addEventListener('click',e=>{if(e.target.closest('input'))return;openCompany(row.dataset.siren)}));
   document.querySelectorAll('#companiesTable input[data-select-siren]').forEach(input=>input.addEventListener('change',()=>{if(input.checked)selectedCompanies.add(input.dataset.selectSiren);else selectedCompanies.delete(input.dataset.selectSiren);updateCompanySelection(rows)}));
   updateCompanySelection(rows);
@@ -163,10 +185,39 @@ function renderPerformance(){
   document.querySelectorAll('#performanceTable tr[data-siren]').forEach(r=>r.addEventListener('click',()=>openCompany(r.dataset.siren)));
 }
 
+function mapKeys(c,mode){
+  if(mode==='category')return [groupCategory(c)||'À classer'];
+  if(mode==='accounting')return [accountingSoftware(c)||'Non renseigné'];
+  const software=otherSoftware(c);
+  if(!software.length)return ['Aucun logiciel renseigné'];
+  return [...new Set(software.map(item=>mode==='softwareType'?item.type:item.name))];
+}
+function groupKpis(list){
+  const indicators=new Map();
+  list.forEach(c=>(getInternal(c.siren).kpis||[]).forEach(kpi=>{
+    const value=Number(kpi.value),target=Number(kpi.target);
+    if(!Number.isFinite(value)||!Number.isFinite(target))return;
+    const key=JSON.stringify([kpi.name,kpi.unit]);
+    const current=indicators.get(key)||{name:kpi.name,unit:kpi.unit,count:0,value:0,target:0};
+    current.count++;current.value+=value;current.target+=target;indicators.set(key,current);
+  }));
+  return [...indicators.values()].sort((left,right)=>right.count-left.count).slice(0,6);
+}
 function renderMap(){
-  const groups={}; companies.filter(c=>c.etat_administratif==='A').forEach(c=>{const s=sector(c); (groups[s]||(groups[s]=[])).push(c)});
-  document.getElementById('groupMap').innerHTML=Object.entries(groups).sort((a,b)=>b[1].length-a[1].length).map(([s,list])=>`<div class="group-node"><h4>${esc(s)}</h4><p>${list.length} société${list.length>1?'s':''}</p><div class="group-companies">${list.slice(0,9).map(c=>`<button class="company-pill" data-siren="${c.siren}">${esc(c.nom_complet)}</button>`).join('')}${list.length>9?`<span class="company-pill">+${list.length-9}</span>`:''}</div></div>`).join('');
-  document.querySelectorAll('.company-pill[data-siren]').forEach(b=>b.addEventListener('click',()=>openCompany(b.dataset.siren)));
+  const mode=document.getElementById('mapMode').value;
+  const groups=new Map();
+  companies.forEach(c=>mapKeys(c,mode).forEach(key=>{if(!groups.has(key))groups.set(key,[]);groups.get(key).push(c)}));
+  const entries=[...groups.entries()].sort((left,right)=>mode==='category'?(groupCategories.indexOf(left[0])<0?4:groupCategories.indexOf(left[0]))-(groupCategories.indexOf(right[0])<0?4:groupCategories.indexOf(right[0])):right[1].length-left[1].length||left[0].localeCompare(right[0],'fr'));
+  document.getElementById('groupMap').innerHTML=entries.map(([name,list],index)=>{
+    const expanded=expandedMapGroup===mode+':'+name;
+    const revenue=list.reduce((sum,c)=>sum+simulatedFinance(c).ytd,0);
+    const result=list.reduce((sum,c)=>sum+simulatedFinance(c).monthly.slice(2).reduce((total,month)=>total+month.result,0),0);
+    const score=Math.round(list.reduce((sum,c)=>sum+demoMetrics(c).score,0)/list.length);
+    const kpis=groupKpis(list);
+    return `<article class="group-node ${expanded?'expanded':''}"><button class="group-node-head" data-group-index="${index}" aria-expanded="${expanded}"><span><strong>${esc(name)}</strong><small>${list.length} société${list.length>1?'s':''}</small></span><span aria-hidden="true">${expanded?'−':'+'}</span></button><div class="group-stats"><span>CA simulé <b>${fmtMoney(revenue)}</b></span><span>Score moyen <b>${score} / 100</b></span></div>${expanded?`<div class="group-details"><div class="group-detail-stats"><div><small>CA à date simulé</small><b>${fmtMoney(revenue)}</b></div><div><small>Résultat simulé</small><b>${fmtMoney(result)}</b></div><div><small>Score moyen</small><b>${score} / 100</b></div></div><h4>KPI personnalisés du groupe</h4><div class="group-kpis">${kpis.length?kpis.map(kpi=>`<div><b>${esc(kpi.name)}</b><span>Moy. ${(kpi.value/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · Obj. ${(kpi.target/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · ${kpi.count} valeur${kpi.count>1?'s':''}</span></div>`).join(''):'<p class="muted">Aucun KPI personnalisé pour ce groupe.</p>'}</div><h4>Entreprises</h4><div class="group-companies">${list.map(c=>`<button class="company-pill" data-siren="${c.siren}">${esc(c.nom_complet)}</button>`).join('')}</div></div>`:''}</article>`;
+  }).join('');
+  document.querySelectorAll('[data-group-index]').forEach(button=>button.addEventListener('click',()=>{const name=entries[Number(button.dataset.groupIndex)][0],key=mode+':'+name;expandedMapGroup=expandedMapGroup===key?null:key;renderMap()}));
+  document.querySelectorAll('.company-pill[data-siren]').forEach(button=>button.addEventListener('click',()=>openCompany(button.dataset.siren)));
 }
 
 const accountingTools=[
@@ -187,9 +238,10 @@ function renderConnections(){
 
 function openCompany(siren){
   const c=companies.find(x=>x.siren===siren); if(!c)return; currentCompany=c; const int=getInternal(siren), f=simulatedFinance(c), dm=demoMetrics(c);
+  const category=groupCategory(c),accounting=accountingSoftware(c),knownAccounting=accountingSoftwareOptions.includes(accounting);
   const publicCA=n(c.ca_public)>0?fmtMoney(c.ca_public):'N/D'; const resultPublic=n(c.resultat_net_public)!==null?fmtMoney(c.resultat_net_public):'N/D';
   document.getElementById('drawerContent').innerHTML=`
-    <div class="drawer-header"><p class="eyebrow">${esc(sector(c))}</p><h2>${esc(c.nom_complet)}</h2><p class="muted">SIREN ${c.siren} · ${esc(managerLabel(c))}</p></div>
+    <div class="drawer-header"><p class="eyebrow">Activité publique : ${esc(sector(c))} · Catégorie groupe : <span id="drawerGroupCategory">${esc(category||'À classer')}</span></p><h2>${esc(c.nom_complet)}</h2><p class="muted">SIREN ${c.siren} · ${esc(managerLabel(c))}</p></div>
     <div class="drawer-tabs"><button class="drawer-tab active" type="button" data-drawer-tab="details">Fiche entreprise</button><button class="drawer-tab" type="button" data-drawer-tab="notes">Note privée</button></div>
     <div class="drawer-body" id="companyDetailsPanel">
       <div class="section-title">Données légales</div>
@@ -215,9 +267,21 @@ function openCompany(siren){
         <label>Effectif actuel<input id="internalEmployees" type="number" value="${esc(int.effectif_interne??'')}" placeholder="Ex. 47"></label>
         <label>CA interne annuel (€)<input id="internalRevenue" type="number" value="${esc(int.ca_interne??'')}" placeholder="Ex. 12500000"></label>
         <label>Objectif CA (€)<input id="internalTarget" type="number" value="${esc(int.objectif_ca??'')}" placeholder="Ex. 13000000"></label>
-        <label>Catégorie groupe<input id="internalCategory" value="${esc(int.categorie_groupe??'')}" placeholder="Ex. Automobile"></label>
+        <label>Catégorie groupe<select id="internalCategory"><option value="">À classer</option>${softwareOptions(groupCategories,category)}</select></label>
+        <label>Logiciel comptable<select id="accountingSelect"><option value="">Non renseigné</option>${softwareOptions(accountingSoftwareOptions,accounting)}<option value="other" ${accounting&&!knownAccounting?'selected':''}>Autre logiciel…</option></select></label>
+        <label id="accountingCustomLabel" hidden>Nom du logiciel comptable<input id="accountingCustom" maxlength="80" value="${esc(accounting&&!knownAccounting?accounting:'')}" placeholder="Saisir un logiciel"></label>
         <label class="full">Commentaire<textarea id="internalComment" rows="3" placeholder="Commentaire de gestion…">${esc(int.commentaire??'')}</textarea></label>
-        <div class="form-actions full"><button class="btn primary" type="submit">Enregistrer</button></div>
+        <div class="form-actions full"><span id="internalSaveStatus" role="status"></span><button class="btn primary" type="submit">Enregistrer</button></div>
+      </form>
+
+      <div class="section-title">Autres logiciels utilisés</div>
+      <div id="otherSoftwareList" class="other-software-list"></div>
+      <form class="edit-form" id="otherSoftwareForm">
+        <label>Type de logiciel<select id="otherTypeSelect" required><option value="">Choisir un type</option>${softwareOptions(softwareTypeOptions,'')}<option value="other">Autre type…</option></select></label>
+        <label>Logiciel<select id="otherNameSelect" required><option value="">Choisir un logiciel</option>${softwareOptions(otherSoftwareOptions,'')}<option value="other">Autre logiciel…</option></select></label>
+        <label id="otherTypeCustomLabel" hidden>Autre type<input id="otherTypeCustom" maxlength="80" placeholder="Ex. Gestion des interventions"></label>
+        <label id="otherNameCustomLabel" hidden>Autre logiciel<input id="otherNameCustom" maxlength="80" placeholder="Nom du logiciel"></label>
+        <div class="form-actions full"><button class="btn ghost" type="submit">+ Ajouter ce logiciel</button></div>
       </form>
 
       <div class="section-title">KPI internes</div><div class="kpi-list" id="companyKpiList"></div><button class="btn ghost" id="addKpiBtn">+ Ajouter un KPI</button>
@@ -227,15 +291,49 @@ function openCompany(siren){
       <form id="privateNoteForm"><label for="privateNote">Votre note sur ${esc(c.nom_complet)}</label><textarea id="privateNote" rows="10" placeholder="Écrivez votre note interne…">${esc(int.privateNote??'')}</textarea><div class="form-actions"><button class="btn primary" type="submit">Enregistrer la note</button></div><p id="privateNoteStatus" role="status"></p></form>
     </div>`;
   renderCompanyKpis(c.siren);
-  document.getElementById('internalForm').addEventListener('submit',e=>{e.preventDefault();const old=getInternal(c.siren);internal[c.siren]={...old,effectif_interne:document.getElementById('internalEmployees').value,ca_interne:document.getElementById('internalRevenue').value,objectif_ca:document.getElementById('internalTarget').value,categorie_groupe:document.getElementById('internalCategory').value,commentaire:document.getElementById('internalComment').value};saveInternal();alert('Données internes enregistrées localement.');});
+  renderOtherSoftwareList(c.siren);
+  setupCustomSelect('accountingSelect','accountingCustom');
+  setupCustomSelect('otherTypeSelect','otherTypeCustom');
+  setupCustomSelect('otherNameSelect','otherNameCustom');
+  document.getElementById('internalForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    const saved=getInternal(c.siren),selectedAccounting=document.getElementById('accountingSelect').value;
+    internal[c.siren]={...saved,effectif_interne:document.getElementById('internalEmployees').value,ca_interne:document.getElementById('internalRevenue').value,objectif_ca:document.getElementById('internalTarget').value,groupCategory:document.getElementById('internalCategory').value,accountingSoftware:selectedAccounting==='other'?document.getElementById('accountingCustom').value.trim():selectedAccounting,commentaire:document.getElementById('internalComment').value};
+    saveInternal();
+    document.getElementById('internalSaveStatus').textContent='Enregistré sur cet appareil.';
+    document.getElementById('drawerGroupCategory').textContent=groupCategory(c)||'À classer';
+    renderCompanies();renderOverview();renderMap();
+  });
+  document.getElementById('otherSoftwareForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    const typeSelect=document.getElementById('otherTypeSelect').value,nameSelect=document.getElementById('otherNameSelect').value;
+    const type=typeSelect==='other'?document.getElementById('otherTypeCustom').value.trim():typeSelect;
+    const name=nameSelect==='other'?document.getElementById('otherNameCustom').value.trim():nameSelect;
+    if(!type||!name)return;
+    const saved=getInternal(c.siren),software=[...otherSoftware(c)];
+    if(!software.some(item=>item.type===type&&item.name===name))software.push({type,name});
+    internal[c.siren]={...saved,otherSoftware:software};saveInternal();
+    renderOtherSoftwareList(c.siren);renderCompanies();renderMap();
+    event.target.reset();document.getElementById('otherTypeSelect').dispatchEvent(new Event('change'));document.getElementById('otherNameSelect').dispatchEvent(new Event('change'));
+  });
   document.getElementById('addKpiBtn').addEventListener('click',()=>openKpiModal(c.siren));
   document.querySelectorAll('[data-drawer-tab]').forEach(button=>button.addEventListener('click',()=>{const notes=button.dataset.drawerTab==='notes';document.getElementById('companyDetailsPanel').hidden=notes;document.getElementById('companyNotesPanel').hidden=!notes;document.querySelectorAll('[data-drawer-tab]').forEach(tab=>tab.classList.toggle('active',tab===button))}));
   document.getElementById('privateNoteForm').addEventListener('submit',e=>{e.preventDefault();internal[c.siren]={...getInternal(c.siren),privateNote:document.getElementById('privateNote').value};saveInternal();document.getElementById('privateNoteStatus').textContent='Note enregistrée sur cet appareil.'});
   document.getElementById('drawerOverlay').classList.add('open'); document.getElementById('companyDrawer').classList.add('open');
 }
+function setupCustomSelect(selectId,inputId){
+  const select=document.getElementById(selectId),input=document.getElementById(inputId),label=input.closest('label');
+  const update=()=>{label.hidden=select.value!=='other';input.required=select.value==='other'};
+  select.addEventListener('change',update);update();
+}
+function renderOtherSoftwareList(siren){
+  const list=otherSoftware({siren});
+  document.getElementById('otherSoftwareList').innerHTML=list.length?list.map((item,index)=>`<div class="software-row"><span><b>${esc(item.name)}</b><small>${esc(item.type)}</small></span><button class="icon-btn" type="button" data-software-remove="${index}" aria-label="Retirer ${esc(item.name)}">×</button></div>`).join(''):'<div class="empty-inline">Aucun autre logiciel renseigné.</div>';
+  document.querySelectorAll('[data-software-remove]').forEach(button=>button.addEventListener('click',()=>{const saved=getInternal(siren),updated=[...otherSoftware({siren})];updated.splice(Number(button.dataset.softwareRemove),1);internal[siren]={...saved,otherSoftware:updated};saveInternal();renderOtherSoftwareList(siren);renderCompanies();renderMap()}));
+}
 function renderCompanyKpis(siren){
   const list=(getInternal(siren).kpis||[]); document.getElementById('companyKpiList').innerHTML=list.length?list.map((k,i)=>`<div class="kpi-row"><span><b>${esc(k.name)}</b><small>${esc(k.comment||'')}</small></span><b>${esc(k.value)} ${esc(k.unit)}</b><span>Obj. ${esc(k.target)} ${esc(k.unit)}</span><span class="badge ${Number(k.value)>=Number(k.target)?'green':'orange'}">${Number(k.value)>=Number(k.target)?'Atteint':'À suivre'}</span><button class="icon-btn" data-kpi-remove="${i}">×</button></div>`).join(''):`<div class="empty-inline">Aucun KPI personnalisé. Ajoutez-en pour illustrer le suivi métier.</div>`;
-  document.querySelectorAll('[data-kpi-remove]').forEach(b=>b.addEventListener('click',()=>{const old=getInternal(siren),k=[...(old.kpis||[])];k.splice(Number(b.dataset.kpiRemove),1);internal[siren]={...old,kpis:k};saveInternal();renderCompanyKpis(siren);}));
+  document.querySelectorAll('[data-kpi-remove]').forEach(b=>b.addEventListener('click',()=>{const old=getInternal(siren),k=[...(old.kpis||[])];k.splice(Number(b.dataset.kpiRemove),1);internal[siren]={...old,kpis:k};saveInternal();renderCompanyKpis(siren);renderMap();}));
 }
 function openKpiModal(targets){kpiTargets=Array.isArray(targets)?targets:[targets];document.getElementById('kpiModalContext').textContent=kpiTargets.length===1?'Ce KPI sera ajouté à une entreprise.':`Ce KPI sera ajouté à ${kpiTargets.length} entreprises sélectionnées.`;document.getElementById('kpiModalOverlay').classList.add('open')}
 function closeKpiModal(){document.getElementById('kpiModalOverlay').classList.remove('open');document.getElementById('kpiForm').reset()}
@@ -253,8 +351,9 @@ function renderTrainings(){
 function setupGlobal(){
   document.getElementById('drawerClose').addEventListener('click',closeDrawer); document.getElementById('drawerOverlay').addEventListener('click',closeDrawer);
   document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal); document.getElementById('kpiCancel').addEventListener('click',closeKpiModal);
-  document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const kpi={name:document.getElementById('kpiName').value.trim(),unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value.trim()};kpiTargets.forEach(siren=>{const old=getInternal(siren);internal[siren]={...old,kpis:[...(old.kpis||[]),{...kpi}]}});saveInternal();const currentSiren=currentCompany?.siren;closeKpiModal();if(currentSiren&&kpiTargets.includes(currentSiren))renderCompanyKpis(currentSiren);selectedCompanies.clear();renderCompanies();});
+  document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const kpi={name:document.getElementById('kpiName').value.trim(),unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value.trim()};kpiTargets.forEach(siren=>{const old=getInternal(siren);internal[siren]={...old,kpis:[...(old.kpis||[]),{...kpi}]}});saveInternal();const currentSiren=currentCompany?.siren;closeKpiModal();if(currentSiren&&kpiTargets.includes(currentSiren))renderCompanyKpis(currentSiren);selectedCompanies.clear();renderCompanies();renderMap();});
   document.getElementById('performanceFilter').addEventListener('change',renderPerformance);
+  document.getElementById('mapMode').addEventListener('change',()=>{expandedMapGroup=null;renderMap()});
   document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim(),email=document.getElementById('trainingEmail').value.trim();if(!title||!email)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title,email});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }
