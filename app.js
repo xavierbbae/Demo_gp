@@ -22,7 +22,10 @@ const accountingSoftwareOptions = ['Sage', 'Cegid', 'Pennylane', 'EBP', 'Odoo', 
 const softwareTypeOptions = ['Gestion commerciale', 'ERP', 'CRM', 'Paie / RH', 'Stocks', 'Gestion immobilière', 'Formation'];
 const SOFTWARE_TYPES_KEY = 'parfait_software_types_v1';
 const otherSoftwareOptions = ['Odoo', 'SAP', 'Microsoft Dynamics', 'Salesforce', 'Silae', 'PayFit', 'Shopify', 'Monday.com', 'Excel'];
-let expandedMapGroup = null;
+let mapMode = 'category';
+let mapGroup = null;
+let mapSoftware = null;
+const mapColors = ['#80543a', '#b67951', '#a88363', '#6c5145', '#978c83'];
 
 function loadInternal(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch{return{}} }
 function saveInternal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(internal)); }
@@ -199,13 +202,6 @@ function renderPerformance(){
   document.querySelectorAll('#performanceTable tr[data-siren]').forEach(r=>r.addEventListener('click',()=>openCompany(r.dataset.siren)));
 }
 
-function mapKeys(c,mode){
-  if(mode==='category')return [groupCategory(c)||'À classer'];
-  if(mode==='accounting')return [accountingSoftware(c)||'Non renseigné'];
-  const software=otherSoftware(c);
-  if(!software.length)return ['Aucun logiciel renseigné'];
-  return [...new Set(software.map(item=>mode==='softwareType'?item.type:item.name))];
-}
 function groupKpis(list){
   const indicators=new Map();
   list.forEach(c=>(getInternal(c.siren).kpis||[]).forEach(kpi=>{
@@ -217,21 +213,77 @@ function groupKpis(list){
   }));
   return [...indicators.values()].sort((left,right)=>right.count-left.count).slice(0,6);
 }
+function mapCategory(c){return groupCategory(c)||'À classer'}
+function mapFamilies(){
+  return ['Comptabilité',...availableSoftwareTypes().filter(type=>type!=='Comptabilité')];
+}
+function mapTools(c,family){
+  if(family==='Comptabilité'){
+    const names=[accountingSoftware(c),...otherSoftware(c).filter(item=>item.type===family).map(item=>item.name)].filter(Boolean);
+    return names.length?[...new Set(names)]:['Non renseigné'];
+  }
+  return [...new Set(otherSoftware(c).filter(item=>item.type===family).map(item=>item.name))];
+}
+function mapKnownTools(c,family){return mapTools(c,family).filter(name=>name!=='Non renseigné')}
+function mapMatches(c,query){
+  if(!query)return true;
+  return [c.nom_complet,c.siren,mapCategory(c),accountingSoftware(c)?'Comptabilité':'',accountingSoftware(c),...otherSoftware(c).flatMap(item=>[item.type,item.name])].join(' ').toLocaleLowerCase('fr').includes(query);
+}
+function mapFinance(list){
+  const revenue=list.reduce((sum,c)=>sum+simulatedFinance(c).ytd,0);
+  const result=list.reduce((sum,c)=>sum+simulatedFinance(c).monthly.slice(2).reduce((total,month)=>total+month.result,0),0);
+  const score=list.length?Math.round(list.reduce((sum,c)=>sum+demoMetrics(c).score,0)/list.length):0;
+  return {revenue,result,score};
+}
+function mapCard(label,count,detail,color,active,action,width){
+  return `<button type="button" class="map-node ${active?'active':''}" style="--map-color:${color}" ${action} aria-pressed="${active}"><span class="map-node-top"><strong>${esc(label)}</strong><span class="map-node-count">${count}</span></span><span class="map-node-track"><span style="width:${width}%"></span></span><small>${esc(detail)}</small></button>`;
+}
+function mapInsightRows(entries,total){
+  const maximum=Math.max(1,...entries.map(entry=>entry.count));
+  return `<div class="map-insight-list">${entries.map(entry=>`<div class="map-insight-row" style="--map-color:${entry.color}"><span title="${esc(entry.label)}">${esc(entry.label)}</span><b>${entry.count}${total?` · ${Math.round(entry.count/total*100)} %`:''}</b><div class="map-insight-track"><span style="width:${entry.count/maximum*100}%"></span></div></div>`).join('')}</div>`;
+}
+function mapSelectionInsights(title,list,distribution){
+  const finance=mapFinance(list),kpis=groupKpis(list);
+  return `<h4>${esc(title)}</h4><p>${list.length} entreprise${list.length>1?'s':''} dans cette sélection</p><div class="map-insight-metrics"><div><small>CA à date simulé</small><b>${fmtMoney(finance.revenue)}</b></div><div><small>Résultat simulé</small><b>${fmtMoney(finance.result)}</b></div><div><small>Score moyen</small><b>${finance.score} / 100</b></div><div><small>Logiciels renseignés</small><b>${new Set(list.flatMap(c=>[accountingSoftware(c),...otherSoftware(c).map(item=>item.name)]).filter(Boolean)).size}</b></div></div><div class="map-insight-divider"></div><h4>KPI personnalisés</h4><div class="map-insight-kpis">${kpis.length?kpis.map(kpi=>`<div class="map-insight-kpi"><b>${esc(kpi.name)}</b><span>Moy. ${(kpi.value/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · Obj. ${(kpi.target/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · ${kpi.count} valeur${kpi.count>1?'s':''}</span></div>`).join(''):'<p>Aucun KPI personnalisé pour cette sélection.</p>'}</div>${distribution?`<div class="map-insight-divider"></div>${distribution}`:''}`;
+}
 function renderMap(){
-  const mode=document.getElementById('mapMode').value;
-  const groups=new Map();
-  companies.forEach(c=>mapKeys(c,mode).forEach(key=>{if(!groups.has(key))groups.set(key,[]);groups.get(key).push(c)}));
-  const entries=[...groups.entries()].sort((left,right)=>mode==='category'?(groupCategories.indexOf(left[0])<0?4:groupCategories.indexOf(left[0]))-(groupCategories.indexOf(right[0])<0?4:groupCategories.indexOf(right[0])):right[1].length-left[1].length||left[0].localeCompare(right[0],'fr'));
-  document.getElementById('groupMap').innerHTML=entries.map(([name,list],index)=>{
-    const expanded=expandedMapGroup===mode+':'+name;
-    const revenue=list.reduce((sum,c)=>sum+simulatedFinance(c).ytd,0);
-    const result=list.reduce((sum,c)=>sum+simulatedFinance(c).monthly.slice(2).reduce((total,month)=>total+month.result,0),0);
-    const score=Math.round(list.reduce((sum,c)=>sum+demoMetrics(c).score,0)/list.length);
-    const kpis=groupKpis(list);
-    return `<article class="group-node ${expanded?'expanded':''}"><button class="group-node-head" data-group-index="${index}" aria-expanded="${expanded}"><span><strong>${esc(name)}</strong><small>${list.length} société${list.length>1?'s':''}</small></span><span aria-hidden="true">${expanded?'−':'+'}</span></button><div class="group-stats"><span>CA simulé <b>${fmtMoney(revenue)}</b></span><span>Score moyen <b>${score} / 100</b></span></div>${expanded?`<div class="group-details"><div class="group-detail-stats"><div><small>CA à date simulé</small><b>${fmtMoney(revenue)}</b></div><div><small>Résultat simulé</small><b>${fmtMoney(result)}</b></div><div><small>Score moyen</small><b>${score} / 100</b></div></div><h4>KPI personnalisés du groupe</h4><div class="group-kpis">${kpis.length?kpis.map(kpi=>`<div><b>${esc(kpi.name)}</b><span>Moy. ${(kpi.value/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · Obj. ${(kpi.target/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · ${kpi.count} valeur${kpi.count>1?'s':''}</span></div>`).join(''):'<p class="muted">Aucun KPI personnalisé pour ce groupe.</p>'}</div><h4>Entreprises</h4><div class="group-companies">${list.map(c=>`<button class="company-pill" data-siren="${c.siren}">${esc(c.nom_complet)}</button>`).join('')}</div></div>`:''}</article>`;
-  }).join('');
-  document.querySelectorAll('[data-group-index]').forEach(button=>button.addEventListener('click',()=>{const name=entries[Number(button.dataset.groupIndex)][0],key=mode+':'+name;expandedMapGroup=expandedMapGroup===key?null:key;renderMap()}));
-  document.querySelectorAll('.company-pill[data-siren]').forEach(button=>button.addEventListener('click',()=>openCompany(button.dataset.siren)));
+  const query=document.getElementById('mapSearch').value.trim().toLocaleLowerCase('fr');
+  const visible=companies.filter(c=>mapMatches(c,query));
+  const categories=[...groupCategories,...(visible.some(c=>mapCategory(c)==='À classer')?['À classer']:[])];
+  const families=mapFamilies();
+  const groups=mapMode==='category'?categories:families;
+  if(mapGroup&&!groups.includes(mapGroup)){mapGroup=null;mapSoftware=null}
+  const members=mapGroup?visible.filter(c=>mapMode==='category'?mapCategory(c)===mapGroup:mapTools(c,mapGroup).length>0):[];
+  const tools=mapMode==='software'&&mapGroup?[...new Set(members.flatMap(c=>mapTools(c,mapGroup)))].sort((left,right)=>left.localeCompare(right,'fr')):[];
+  if(mapSoftware&&!tools.includes(mapSoftware))mapSoftware=null;
+  const selected=mapMode==='software'&&mapSoftware?members.filter(c=>mapTools(c,mapGroup).includes(mapSoftware)):members;
+  const distinctSoftware=new Set(visible.flatMap(c=>[accountingSoftware(c),...otherSoftware(c).map(item=>item.name)]).filter(Boolean)).size;
+  document.getElementById('mapSummary').innerHTML=`<div class="map-summary-item"><b>${visible.length}</b><span>entreprises${query?' trouvées':' dans le référentiel'}</span></div><div class="map-summary-item"><b>${distinctSoftware}</b><span>logiciels renseignés</span></div><div class="map-summary-item"><b>${groupCategories.length}</b><span>catégories groupe</span></div>`;
+  document.querySelectorAll('[data-map-mode]').forEach(button=>{const active=button.dataset.mapMode===mapMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active)});
+  const column=(title,count,content,extra='')=>`<div class="map-column ${extra}"><div class="map-column-head"><span>${esc(title)}</span><b>${count}</b></div><div class="map-node-list">${content}</div></div>`;
+  const root=column('Groupe',visible.length,`<button type="button" class="map-root" id="mapRoot"><span class="map-root-mark">P</span><strong>Groupe Parfait</strong><small>${visible.length} entreprises · ${mapMode==='category'?'4 catégories':`${families.length} familles logicielles`}</small></button>`);
+  const groupCards=groups.filter(name=>!query||(mapMode==='category'?visible.some(c=>mapCategory(c)===name):visible.some(c=>mapTools(c,name).length))).map((name,index)=>{
+    const list=visible.filter(c=>mapMode==='category'?mapCategory(c)===name:mapTools(c,name).length>0);
+    const count=mapMode==='category'?list.length:new Set(list.flatMap(c=>mapKnownTools(c,name))).size;
+    const knownCount=mapMode==='software'?list.filter(c=>mapKnownTools(c,name).length>0).length:0;
+    const detail=mapMode==='category'?`${Math.round(list.length/(visible.length||1)*100)} % du groupe · ${new Set(list.flatMap(c=>[accountingSoftware(c),...otherSoftware(c).map(item=>item.name)]).filter(Boolean)).size} logiciels`:`${knownCount} entreprise${knownCount>1?'s':''} renseignée${knownCount>1?'s':''} · ${count} logiciel${count>1?'s':''}`;
+    return mapCard(name,count,detail,mapColors[mapMode==='category'?groupCategories.indexOf(name)<0?4:groupCategories.indexOf(name):index%mapColors.length],mapGroup===name,`data-map-group="${esc(name)}"`,Math.round(list.length/(visible.length||1)*100));
+  }).join('')||'<div class="map-empty"><b>Aucun résultat</b>Essayez une autre recherche.</div>';
+  const groupColumn=column(mapMode==='category'?'Catégories':'Familles',groups.length,groupCards);
+  const softwareCards=tools.map((name,index)=>{const count=members.filter(c=>mapTools(c,mapGroup).includes(name)).length;return mapCard(name,count,name==='Non renseigné'?`${count} entreprise${count>1?'s':''} à renseigner`:`${count} entreprise${count>1?'s':''} utilisatrice${count>1?'s':''}`,mapColors[index%mapColors.length],mapSoftware===name,`data-map-software="${esc(name)}"`,Math.round(count/(members.length||1)*100))}).join('');
+  const softwareColumn=mapMode==='software'?column('Logiciels',tools.length,mapGroup?softwareCards||'<div class="map-empty"><b>Aucun logiciel renseigné</b>Renseignez-le dans une fiche entreprise.</div>':'<div class="map-empty"><b>Sélectionnez une famille</b>Ses logiciels apparaîtront ici.</div>','software'):'';
+  const companyList=selected.slice().sort((left,right)=>left.nom_complet.localeCompare(right.nom_complet,'fr'));
+  const companyCards=companyList.map(c=>`<button type="button" class="map-company" data-map-company="${c.siren}"><strong>${esc(c.nom_complet)}</strong><small>${esc(mapCategory(c))} · ${esc(c.etat_administratif==='A'?'Active':'Fermée')} · ${esc(c.siren)}</small></button>`).join('');
+  const ready=mapMode==='category'?Boolean(mapGroup):Boolean(mapSoftware);
+  const companiesColumn=column('Entreprises',ready?companyList.length:'—',ready?companyCards||'<div class="map-empty"><b>Aucune entreprise</b>Cette sélection est vide.</div>':`<div class="map-empty"><b>${mapMode==='category'?'Sélectionnez une catégorie':'Sélectionnez un logiciel'}</b>Les entreprises apparaîtront ici.</div>`,'companies');
+  document.getElementById('mapCanvas').innerHTML=root+groupColumn+softwareColumn+companiesColumn;
+  const distribution=groups.map((name,index)=>({label:name,count:visible.filter(c=>mapMode==='category'?mapCategory(c)===name:mapKnownTools(c,name).length>0).length,color:mapColors[mapMode==='category'?groupCategories.indexOf(name)<0?4:groupCategories.indexOf(name):index%mapColors.length]}));
+  const distributionHtml=`<h4>${mapMode==='category'?'Répartition des entreprises':'Couverture par famille'}</h4><p>${mapMode==='category'?'Entreprises par catégorie groupe':'Entreprises ayant un logiciel renseigné dans chaque famille'}</p>${mapInsightRows(distribution,mapMode==='category'?visible.length:0)}`;
+  document.getElementById('mapInsights').innerHTML=mapGroup?mapSelectionInsights(mapSoftware||mapGroup,selected,distributionHtml):distributionHtml+`<div class="map-insight-divider"></div><p>Sélectionnez ${mapMode==='category'?'une catégorie':'une famille puis un logiciel'} pour voir ses entreprises et ses KPI. Une entreprise ouvre sa fiche modifiable.</p>`;
+  document.getElementById('mapRoot').addEventListener('click',()=>{mapGroup=null;mapSoftware=null;renderMap()});
+  document.querySelectorAll('[data-map-group]').forEach(button=>button.addEventListener('click',()=>{mapGroup=mapGroup===button.dataset.mapGroup?null:button.dataset.mapGroup;mapSoftware=null;renderMap()}));
+  document.querySelectorAll('[data-map-software]').forEach(button=>button.addEventListener('click',()=>{mapSoftware=mapSoftware===button.dataset.mapSoftware?null:button.dataset.mapSoftware;renderMap()}));
+  document.querySelectorAll('[data-map-company]').forEach(button=>button.addEventListener('click',()=>openCompany(button.dataset.mapCompany)));
 }
 
 const accountingTools=[
@@ -369,7 +421,8 @@ function setupGlobal(){
   document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal); document.getElementById('kpiCancel').addEventListener('click',closeKpiModal);
   document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const kpi={name:document.getElementById('kpiName').value.trim(),unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value.trim()};kpiTargets.forEach(siren=>{const old=getInternal(siren);internal[siren]={...old,kpis:[...(old.kpis||[]),{...kpi}]}});saveInternal();const currentSiren=currentCompany?.siren;closeKpiModal();if(currentSiren&&kpiTargets.includes(currentSiren))renderCompanyKpis(currentSiren);selectedCompanies.clear();renderCompanies();renderMap();});
   document.getElementById('performanceFilter').addEventListener('change',renderPerformance);
-  document.getElementById('mapMode').addEventListener('change',()=>{expandedMapGroup=null;renderMap()});
+  document.getElementById('mapSearch').addEventListener('input',()=>{mapGroup=null;mapSoftware=null;renderMap()});
+  document.querySelectorAll('[data-map-mode]').forEach(button=>button.addEventListener('click',()=>{mapMode=button.dataset.mapMode;mapGroup=null;mapSoftware=null;renderMap()}));
   document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim(),email=document.getElementById('trainingEmail').value.trim();if(!title||!email)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title,email});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }
