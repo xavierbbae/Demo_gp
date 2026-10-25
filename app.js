@@ -19,23 +19,24 @@ const TRAININGS_KEY = 'parfait_trainings_v1';
 const DEFAULT_TRAINING_EMAIL = 'xymapartners.contact@gmail.com';
 const groupCategories = ['Immobilier', 'Automobile', 'Alimentaire', 'Industrie'];
 const accountingSoftwareOptions = ['Sage', 'Cegid', 'Pennylane', 'EBP', 'Odoo', 'SAP', 'Oracle NetSuite', 'Microsoft Dynamics', 'QuickBooks', 'ACD'];
-const softwareTypeOptions = ['Gestion commerciale', 'ERP', 'CRM', 'Paie / RH', 'Stocks', 'Gestion immobilière', 'Formation'];
+const softwareTypeOptions = ['Gestion commerciale', 'ERP', 'CRM', 'Paie / RH', 'Stocks', 'Gestion immobilière', 'Formation', 'Facturation', 'Gestion de projets', 'Trésorerie', 'Gestion documentaire', 'Reporting et BI'];
 const SOFTWARE_TYPES_KEY = 'parfait_software_types_v1';
 const otherSoftwareOptions = ['Odoo', 'SAP', 'Microsoft Dynamics', 'Salesforce', 'Silae', 'PayFit', 'Shopify', 'Monday.com', 'Excel'];
 let mapMode = 'category';
 let mapGroup = null;
 let mapSoftware = null;
+let mapCompany = null;
 let showMapSamples = true;
 const mapColors = ['#80543a', '#b67951', '#a88363', '#6c5145', '#978c83'];
 const mapSamples = {
-  '338539232': {accounting:'Sage',other:[{type:'Gestion immobilière',name:'Odoo'},{type:'CRM',name:'Salesforce'}]},
-  '404427221': {accounting:'Cegid',other:[{type:'Gestion immobilière',name:'Odoo'},{type:'Paie / RH',name:'Silae'}]},
-  '488308198': {accounting:'Sage',other:[{type:'Gestion commerciale',name:'Odoo'},{type:'CRM',name:'Salesforce'}]},
-  '451715767': {accounting:'EBP',other:[{type:'Gestion commerciale',name:'Odoo'}]},
-  '451369318': {accounting:'Pennylane',other:[{type:'Stocks',name:'Odoo'},{type:'Gestion commerciale',name:'Shopify'}]},
-  '799840954': {accounting:'Cegid',other:[{type:'Stocks',name:'SAP'},{type:'CRM',name:'Salesforce'}]},
-  '510498264': {accounting:'Sage',other:[{type:'ERP',name:'SAP'},{type:'Stocks',name:'SAP'}]},
-  '510181274': {accounting:'EBP',other:[{type:'ERP',name:'Odoo'},{type:'Paie / RH',name:'PayFit'}]}
+  '338539232': {accounting:'Sage',other:[{type:'Gestion immobilière',name:'Odoo'},{type:'CRM',name:'Salesforce'},{type:'Trésorerie',name:'Agicap'}],kpis:[{name:'Taux d’occupation',unit:'%',value:94,target:92},{name:'Loyers encaissés',unit:'%',value:97,target:96},{name:'Délai de relocation',unit:'jours',value:24,target:20}]},
+  '404427221': {accounting:'Cegid',other:[{type:'Gestion immobilière',name:'Odoo'},{type:'Paie / RH',name:'Silae'},{type:'Gestion documentaire',name:'SharePoint'},{type:'Formation',name:'360Learning'}],kpis:[{name:'Lots gérés',unit:'lots',value:1280,target:1250},{name:'Charges recouvrées',unit:'%',value:95,target:97},{name:'Dossiers traités',unit:'%',value:89,target:90}]},
+  '488308198': {accounting:'Sage',other:[{type:'Gestion commerciale',name:'Odoo'},{type:'CRM',name:'Salesforce'},{type:'Facturation',name:'Sellsy'}],kpis:[{name:'Véhicules vendus',unit:'unités',value:68,target:72},{name:'Marge commerciale',unit:'%',value:19,target:18},{name:'Rotation du stock',unit:'jours',value:41,target:38}]},
+  '451715767': {accounting:'EBP',other:[{type:'Gestion commerciale',name:'Odoo'}],kpis:[{name:'Interventions réalisées',unit:'unités',value:156,target:150},{name:'Satisfaction client',unit:'%',value:91,target:92},{name:'Délai moyen',unit:'jours',value:3,target:4}]},
+  '451369318': {accounting:'Pennylane',other:[{type:'Stocks',name:'Odoo'},{type:'Gestion commerciale',name:'Shopify'}],kpis:[{name:'Commandes livrées',unit:'unités',value:840,target:800},{name:'Ruptures de stock',unit:'%',value:4,target:3},{name:'Marge brute',unit:'%',value:27,target:26}]},
+  '799840954': {accounting:'Cegid',other:[{type:'Stocks',name:'SAP'},{type:'CRM',name:'Salesforce'},{type:'Reporting et BI',name:'Power BI'}],kpis:[{name:'Points de vente actifs',unit:'sites',value:23,target:22},{name:'Disponibilité produits',unit:'%',value:96,target:97},{name:'Pertes alimentaires',unit:'%',value:2.8,target:2.5}]},
+  '510498264': {accounting:'Sage',other:[{type:'ERP',name:'SAP'},{type:'Stocks',name:'SAP'}],kpis:[{name:'Production mensuelle',unit:'unités',value:12400,target:12000},{name:'Taux de disponibilité',unit:'%',value:93,target:95},{name:'Rebuts',unit:'%',value:1.9,target:2}]},
+  '510181274': {accounting:'EBP',other:[{type:'ERP',name:'Odoo'},{type:'Paie / RH',name:'PayFit'},{type:'Gestion de projets',name:'Monday.com'}],kpis:[{name:'Commandes produites',unit:'unités',value:410,target:400},{name:'Livraisons à temps',unit:'%',value:88,target:92},{name:'Accidents avec arrêt',unit:'unités',value:0,target:0}]}
 };
 
 function loadInternal(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||{}}catch{return{}} }
@@ -215,7 +216,7 @@ function renderPerformance(){
 
 function groupKpis(list){
   const indicators=new Map();
-  list.forEach(c=>(getInternal(c.siren).kpis||[]).forEach(kpi=>{
+  list.forEach(c=>mapKpis(c).forEach(kpi=>{
     const value=Number(kpi.value),target=Number(kpi.target);
     if(!Number.isFinite(value)||!Number.isFinite(target))return;
     const key=JSON.stringify([kpi.name,kpi.unit]);
@@ -226,6 +227,7 @@ function groupKpis(list){
 }
 function mapCategory(c){return groupCategory(c)||'À classer'}
 function mapSample(c){return showMapSamples?mapSamples[c.siren]:null}
+function mapKpis(c){const saved=getInternal(c.siren);return Object.hasOwn(saved,'kpis')?saved.kpis||[]:mapSample(c)?.kpis||[]}
 function mapAccounting(c){
   const saved=getInternal(c.siren);
   return Object.hasOwn(saved,'accountingSoftware')?accountingSoftware(c):mapSample(c)?.accounting||'';
@@ -236,7 +238,7 @@ function mapOtherSoftware(c){
 }
 function mapUsesSample(c){
   const sample=mapSample(c),saved=getInternal(c.siren);
-  return Boolean(sample&&(!Object.hasOwn(saved,'accountingSoftware')||!Object.hasOwn(saved,'otherSoftware')));
+  return Boolean(sample&&(!Object.hasOwn(saved,'accountingSoftware')||!Object.hasOwn(saved,'otherSoftware')||!Object.hasOwn(saved,'kpis')));
 }
 function mapFamilies(){
   const types=new Set([...availableSoftwareTypes(),...companies.flatMap(c=>mapOtherSoftware(c).map(item=>item.type))]);
@@ -271,6 +273,34 @@ function mapSelectionInsights(title,list,distribution){
   const finance=mapFinance(list),kpis=groupKpis(list);
   return `<h4>${esc(title)}</h4><p>${list.length} entreprise${list.length>1?'s':''} dans cette sélection${list.some(mapUsesSample)?` · ${list.filter(mapUsesSample).length} avec données d'exemple`:''}</p><div class="map-insight-metrics"><div><small>CA à date simulé</small><b>${fmtMoney(finance.revenue)}</b></div><div><small>Résultat simulé</small><b>${fmtMoney(finance.result)}</b></div><div><small>Score moyen</small><b>${finance.score} / 100</b></div><div><small>Logiciels présentés</small><b>${new Set(list.flatMap(c=>[mapAccounting(c),...mapOtherSoftware(c).map(item=>item.name)]).filter(Boolean)).size}</b></div></div><div class="map-insight-divider"></div><h4>KPI personnalisés</h4><div class="map-insight-kpis">${kpis.length?kpis.map(kpi=>`<div class="map-insight-kpi"><b>${esc(kpi.name)}</b><span>Moy. ${(kpi.value/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · Obj. ${(kpi.target/kpi.count).toLocaleString('fr-FR',{maximumFractionDigits:1})} ${esc(kpi.unit)} · ${kpi.count} valeur${kpi.count>1?'s':''}</span></div>`).join(''):'<p>Aucun KPI personnalisé pour cette sélection.</p>'}</div>${distribution?`<div class="map-insight-divider"></div>${distribution}`:''}`;
 }
+function mapColor(category){const index=groupCategories.indexOf(category);return mapColors[index<0?4:index]}
+function mapSegments(list){
+  return `<span class="map-segments">${[...groupCategories,'À classer'].map(category=>{const count=list.filter(c=>mapCategory(c)===category).length;return count?`<span style="width:${count/(list.length||1)*100}%;background:${mapColor(category)}" title="${esc(category)} : ${count}"></span>`:''}).join('')}</span>`;
+}
+function mapComparator(family,visible,selectedTool){
+  const names=[...new Set(visible.flatMap(c=>mapTools(c,family)))].sort((a,b)=>a.localeCompare(b,'fr'));
+  if(!names.length)return '<p>Aucun logiciel dans cette famille.</p>';
+  return `<div class="map-insight-divider"></div><h4>Comparateur par pôle</h4><p>Entreprises par logiciel et par pôle</p><div class="map-comparator-scroll"><table class="map-comparator"><thead><tr><th>Logiciel</th>${groupCategories.map(category=>`<th title="${esc(category)}" style="--map-color:${mapColor(category)}">${esc(category.slice(0,4))}.</th>`).join('')}<th>Total</th></tr></thead><tbody>${names.map(name=>{const users=visible.filter(c=>mapTools(c,family).includes(name));return `<tr class="${selectedTool===name?'active':''}"><th><button type="button" data-map-jump-tool="${esc(name)}">${esc(name)}</button></th>${groupCategories.map(category=>{const count=users.filter(c=>mapCategory(c)===category).length;return `<td><button type="button" data-map-jump-cell="${esc(name)}" data-map-jump-category="${esc(category)}" ${count?'':'disabled'}>${count||'–'}</button></td>`}).join('')}<td><b>${users.length}</b></td></tr>`}).join('')}</tbody></table></div><p>Un logiciel ouvre ses entreprises ; un chiffre filtre le pôle concerné.</p>`;
+}
+function mapSoftwareMix(list){
+  const entries=mapFamilies().map(family=>({family,tools:[...new Set(list.flatMap(c=>mapKnownTools(c,family)))].map(name=>({name,count:list.filter(c=>mapKnownTools(c,family).includes(name)).length}))})).filter(item=>item.tools.length);
+  return `<div class="map-insight-divider"></div><h4>Outils utilisés par famille</h4><p>Nombre d’entreprises du pôle par logiciel</p><div class="map-insight-list">${entries.map(item=>`<button type="button" class="map-insight-link" data-map-jump-family="${esc(item.family)}"><span><small>${esc(item.family)}</small><strong>${item.tools.sort((a,b)=>b.count-a.count).map(tool=>`${esc(tool.name)} ${tool.count}`).join(' · ')}</strong></span><b>${item.tools.length} outil${item.tools.length>1?'s':''} ›</b></button>`).join('')}</div>`;
+}
+function mapCompanyInsights(c){
+  const finance=simulatedFinance(c),kpis=mapKpis(c),tools=[['Comptabilité',mapAccounting(c)||'Non renseigné'],...mapOtherSoftware(c).map(item=>[item.type,item.name])];
+  return `<div class="map-company-detail"><span class="map-detail-eyebrow">FICHE ENTREPRISE</span><h4>${esc(c.nom_complet)}</h4><p>${esc(c.siren)} · ${esc(mapCategory(c))}</p>${mapUsesSample(c)?'<span class="map-sample-badge">Données fictives de démonstration</span>':''}<div class="map-insight-divider"></div><div class="map-insight-metrics"><div><small>CA à date simulé</small><b>${fmtMoney(finance.ytd)}</b></div><div><small>Score simulé</small><b>${demoMetrics(c).score} / 100</b></div></div><div class="map-insight-divider"></div><h4>Logiciels utilisés</h4><div class="map-detail-list">${tools.map(([family,name])=>`<div><span>${esc(family)}</span><b>${esc(name)}</b></div>`).join('')}</div><div class="map-insight-divider"></div><h4>KPI de l’entreprise</h4><div class="map-insight-kpis">${kpis.length?kpis.map(kpi=>`<div class="map-insight-kpi"><b>${esc(kpi.name)}</b><span>${esc(kpi.value)} ${esc(kpi.unit)} · Objectif ${esc(kpi.target)} ${esc(kpi.unit)}</span></div>`).join(''):'<p>Aucun KPI renseigné.</p>'}</div><button type="button" class="btn primary map-detail-edit" data-map-edit-company="${esc(c.siren)}">Ouvrir la fiche modifiable ↗</button></div>`;
+}
+function mapDrawLinks(){
+  const canvas=document.getElementById('mapCanvas'),svg=canvas.querySelector('.map-links');
+  if(!svg||matchMedia('(max-width:700px)').matches)return;
+  const source=canvas.querySelector(mapMode==='category'?'#mapRoot':mapGroup?'[data-map-group].active':'#mapRoot');
+  const targets=mapMode==='category'?(mapGroup?canvas.querySelectorAll('[data-map-company]'):canvas.querySelectorAll('[data-map-group]')):mapSoftware?canvas.querySelectorAll('[data-map-company]'):mapGroup?canvas.querySelectorAll('[data-map-software]'):canvas.querySelectorAll('[data-map-group]');
+  const start=mapMode==='software'&&mapSoftware?canvas.querySelector('[data-map-software].active'):mapMode==='category'&&mapGroup?canvas.querySelector('[data-map-group].active'):source;
+  if(!start)return;
+  const origin=canvas.getBoundingClientRect(),from=start.getBoundingClientRect();
+  svg.setAttribute('width',canvas.scrollWidth);svg.setAttribute('height',canvas.scrollHeight);
+  svg.innerHTML=[...targets].slice(0,30).map(target=>{const to=target.getBoundingClientRect(),x1=from.right-origin.left+canvas.scrollLeft,y1=from.top+from.height/2-origin.top,x2=to.left-origin.left+canvas.scrollLeft,y2=to.top+to.height/2-origin.top,middle=x1+(x2-x1)/2;return x2>x1?`<path d="M${x1} ${y1} H${middle} V${y2} H${x2}" />`:''}).join('');
+}
 function renderMap(){
   const query=document.getElementById('mapSearch').value.trim().toLocaleLowerCase('fr');
   const visible=companies.filter(c=>mapMatches(c,query));
@@ -282,9 +312,11 @@ function renderMap(){
   const tools=mapMode==='software'&&mapGroup?[...new Set(members.flatMap(c=>mapTools(c,mapGroup)))].sort((left,right)=>left.localeCompare(right,'fr')):[];
   if(mapSoftware&&!tools.includes(mapSoftware))mapSoftware=null;
   const selected=mapMode==='software'&&mapSoftware?members.filter(c=>mapTools(c,mapGroup).includes(mapSoftware)):members;
+  if(mapCompany&&!selected.some(c=>c.siren===mapCompany))mapCompany=null;
   const distinctSoftware=new Set(visible.flatMap(c=>[mapAccounting(c),...mapOtherSoftware(c).map(item=>item.name)]).filter(Boolean)).size;
   const sampleCount=visible.filter(mapUsesSample).length;
-  document.getElementById('mapSummary').innerHTML=`<div class="map-summary-item"><b>${visible.length}</b><span>entreprises${query?' trouvées':' dans le référentiel'}</span></div><div class="map-summary-item"><b>${distinctSoftware}</b><span>logiciels présentés</span></div><div class="map-summary-item"><b>${sampleCount}</b><span>entreprises d'exemple</span></div><div class="map-summary-item"><b>${groupCategories.length}</b><span>catégories groupe</span></div>`;
+  document.getElementById('mapSummary').innerHTML=`<div class="map-summary-item"><b>${visible.length}</b><span>entreprises${query?' trouvées':' dans le référentiel'}</span></div><div class="map-summary-item"><b>${distinctSoftware}</b><span>logiciels distincts</span></div><div class="map-summary-item"><b>${groupCategories.length}</b><span>pôles du groupe</span></div><div class="map-summary-item"><b>${sampleCount}</b><span>fiches d’exemple</span></div>`;
+  document.getElementById('mapToolbar').innerHTML=`<button type="button" class="map-back" id="mapBack" ${mapGroup?'':'disabled'}>← Retour</button><div class="map-crumbs"><button type="button" data-map-crumb="root">Cartographie</button><span>›</span><button type="button" data-map-crumb="mode">${mapMode==='category'?'Pôles':'Logiciels'}</button>${mapGroup?`<span>›</span><button type="button" data-map-crumb="group">${esc(mapGroup)}</button>`:''}${mapSoftware?`<span>›</span><b>${esc(mapSoftware)}</b>`:''}</div><div class="map-legend">${groupCategories.map(category=>`<span><i style="background:${mapColor(category)}"></i>${esc(category)}</span>`).join('')}</div>`;
   document.querySelectorAll('[data-map-mode]').forEach(button=>{const active=button.dataset.mapMode===mapMode;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active)});
   const column=(title,count,content,extra='')=>`<div class="map-column ${extra}"><div class="map-column-head"><span>${esc(title)}</span><b>${count}</b></div><div class="map-node-list">${content}</div></div>`;
   const root=column('Groupe',visible.length,`<button type="button" class="map-root" id="mapRoot"><span class="map-root-mark">P</span><strong>Groupe Parfait</strong><small>${visible.length} entreprises · ${mapMode==='category'?'4 catégories':`${families.length} familles logicielles`}</small></button>`);
@@ -293,23 +325,35 @@ function renderMap(){
     const count=mapMode==='category'?list.length:new Set(list.flatMap(c=>mapKnownTools(c,name))).size;
     const knownCount=mapMode==='software'?list.filter(c=>mapKnownTools(c,name).length>0).length:0;
     const detail=mapMode==='category'?`${Math.round(list.length/(visible.length||1)*100)} % du groupe · ${new Set(list.flatMap(c=>[mapAccounting(c),...mapOtherSoftware(c).map(item=>item.name)]).filter(Boolean)).size} logiciels`:`${knownCount} entreprise${knownCount>1?'s':''} présentée${knownCount>1?'s':''} · ${count} logiciel${count>1?'s':''}`;
-    return mapCard(name,count,detail,mapColors[mapMode==='category'?groupCategories.indexOf(name)<0?4:groupCategories.indexOf(name):index%mapColors.length],mapGroup===name,`data-map-group="${esc(name)}"`,Math.round(list.length/(visible.length||1)*100));
+    const color=mapMode==='category'?mapColor(name):mapColors[index%mapColors.length];
+    return `<button type="button" class="map-node ${mapMode==='category'?'map-pole-node':'map-family-node'} ${mapGroup===name?'active':''}" style="--map-color:${color}" data-map-group="${esc(name)}" aria-pressed="${mapGroup===name}"><span class="map-node-top"><span class="map-node-icon">${mapMode==='category'?'●':'▤'}</span><strong>${esc(name)}</strong><span class="map-node-count">${count}</span></span>${mapMode==='category'?`<span class="map-node-track"><span style="width:${Math.round(list.length/(visible.length||1)*100)}%"></span></span>`:''}<small>${esc(detail)}</small></button>`;
   }).join('')||'<div class="map-empty"><b>Aucun résultat</b>Essayez une autre recherche.</div>';
   const groupColumn=column(mapMode==='category'?'Catégories':'Familles',groups.length,groupCards);
-  const softwareCards=tools.map((name,index)=>{const count=members.filter(c=>mapTools(c,mapGroup).includes(name)).length;return mapCard(name,count,name==='Non renseigné'?`${count} entreprise${count>1?'s':''} à renseigner`:`${count} entreprise${count>1?'s':''} utilisatrice${count>1?'s':''}`,mapColors[index%mapColors.length],mapSoftware===name,`data-map-software="${esc(name)}"`,Math.round(count/(members.length||1)*100))}).join('');
+  const softwareCards=tools.map((name,index)=>{const users=members.filter(c=>mapTools(c,mapGroup).includes(name)),count=users.length;return `<button type="button" class="map-node map-tool-node ${mapSoftware===name?'active':''}" style="--map-color:${mapColors[index%mapColors.length]}" data-map-software="${esc(name)}" aria-pressed="${mapSoftware===name}"><span class="map-node-top"><span class="map-tool-mark">${esc(name.slice(0,2))}</span><strong>${esc(name)}</strong></span><small>${count} entreprise${count>1?'s':''}</small>${mapSegments(users)}</button>`}).join('');
   const softwareColumn=mapMode==='software'?column('Logiciels',tools.length,mapGroup?softwareCards||'<div class="map-empty"><b>Aucun logiciel renseigné</b>Renseignez-le dans une fiche entreprise.</div>':'<div class="map-empty"><b>Sélectionnez une famille</b>Ses logiciels apparaîtront ici.</div>','software'):'';
   const companyList=selected.slice().sort((left,right)=>left.nom_complet.localeCompare(right.nom_complet,'fr'));
-  const companyCards=companyList.map(c=>`<button type="button" class="map-company" data-map-company="${c.siren}"><strong>${esc(c.nom_complet)}</strong><small>${esc(mapCategory(c))} · ${esc(c.etat_administratif==='A'?'Active':'Fermée')} · ${esc(c.siren)}</small>${mapUsesSample(c)?'<span class="map-sample-badge">Exemple fictif</span>':''}</button>`).join('');
+  const companyCards=companyList.map(c=>`<button type="button" class="map-company ${mapCompany===c.siren?'active':''}" style="--map-color:${mapColor(mapCategory(c))}" data-map-company="${c.siren}"><strong>${esc(c.nom_complet)}</strong><small><span class="map-company-tag">${esc(mapCategory(c))}</span> ${esc(c.activite_principale||'')} · ${esc(c.siren)}</small><small>${mapKpis(c).length} KPI · ${[mapAccounting(c),...mapOtherSoftware(c).map(item=>item.name)].filter(Boolean).length} logiciels ${mapUsesSample(c)?'· Exemple fictif':''}</small></button>`).join('');
   const ready=mapMode==='category'?Boolean(mapGroup):Boolean(mapSoftware);
-  const companiesColumn=column('Entreprises',ready?companyList.length:'—',ready?companyCards||'<div class="map-empty"><b>Aucune entreprise</b>Cette sélection est vide.</div>':`<div class="map-empty"><b>${mapMode==='category'?'Sélectionnez une catégorie':'Sélectionnez un logiciel'}</b>Les entreprises apparaîtront ici.</div>`,'companies');
-  document.getElementById('mapCanvas').innerHTML=root+groupColumn+softwareColumn+companiesColumn;
+  const companiesColumn=column(mapSoftware?`Utilisatrices de ${mapSoftware}`:'Entreprises',ready?companyList.length:'—',ready?companyCards||'<div class="map-empty"><b>Aucune entreprise</b>Cette sélection est vide.</div>':`<div class="map-empty"><b>${mapMode==='category'?'Sélectionnez un pôle':'Sélectionnez un logiciel'}</b>Les entreprises apparaîtront ici.</div>`,'companies');
+  document.getElementById('mapCanvas').innerHTML='<svg class="map-links" aria-hidden="true"></svg>'+root+groupColumn+softwareColumn+companiesColumn;
   const distribution=groups.map((name,index)=>({label:name,count:visible.filter(c=>mapMode==='category'?mapCategory(c)===name:mapKnownTools(c,name).length>0).length,color:mapColors[mapMode==='category'?groupCategories.indexOf(name)<0?4:groupCategories.indexOf(name):index%mapColors.length]}));
   const distributionHtml=`<h4>${mapMode==='category'?'Répartition des entreprises':'Couverture par famille'}</h4><p>${mapMode==='category'?'Entreprises par catégorie groupe':'Entreprises avec un logiciel présenté dans chaque famille'}</p>${mapInsightRows(distribution,mapMode==='category'?visible.length:0)}`;
-  document.getElementById('mapInsights').innerHTML=mapGroup?mapSelectionInsights(mapSoftware||mapGroup,selected,distributionHtml):distributionHtml+`<div class="map-insight-divider"></div><p>Sélectionnez ${mapMode==='category'?'une catégorie':'une famille puis un logiciel'} pour voir ses entreprises et ses KPI. Une entreprise ouvre sa fiche modifiable.</p>`;
-  document.getElementById('mapRoot').addEventListener('click',()=>{mapGroup=null;mapSoftware=null;renderMap()});
-  document.querySelectorAll('[data-map-group]').forEach(button=>button.addEventListener('click',()=>{mapGroup=mapGroup===button.dataset.mapGroup?null:button.dataset.mapGroup;mapSoftware=null;renderMap()}));
-  document.querySelectorAll('[data-map-software]').forEach(button=>button.addEventListener('click',()=>{mapSoftware=mapSoftware===button.dataset.mapSoftware?null:button.dataset.mapSoftware;renderMap()}));
-  document.querySelectorAll('[data-map-company]').forEach(button=>button.addEventListener('click',()=>openCompany(button.dataset.mapCompany)));
+  const categoryInsights=mapGroup?mapSelectionInsights(mapGroup,selected,'')+mapSoftwareMix(selected):distributionHtml+`<div class="map-insight-divider"></div><p>Cliquez sur un pôle pour afficher ses entreprises, leurs logiciels et leurs KPI.</p>`;
+  const toolUsers=mapSoftware?selected:[];
+  const toolDistribution=mapSoftware?`<h4>${esc(mapSoftware)}</h4><p>${toolUsers.length} entreprise${toolUsers.length>1?'s':''} utilisatrice${toolUsers.length>1?'s':''} dans ${new Set(toolUsers.map(mapCategory)).size} pôle(s)</p>${mapSegments(toolUsers)}${mapInsightRows(groupCategories.map(category=>({label:category,count:toolUsers.filter(c=>mapCategory(c)===category).length,color:mapColor(category)})),toolUsers.length)}`:'';
+  const softwareInsights=mapGroup?(mapSoftware?toolDistribution+mapComparator(mapGroup,visible,mapSoftware):mapSelectionInsights(mapGroup,members,'')+mapComparator(mapGroup,visible,'')):distributionHtml+'<div class="map-insight-divider"></div><p>Sélectionnez une famille pour comparer ses logiciels par pôle.</p>';
+  document.getElementById('mapInsights').innerHTML=mapCompany?mapCompanyInsights(companies.find(c=>c.siren===mapCompany)):(mapMode==='category'?categoryInsights:softwareInsights);
+  document.getElementById('mapRoot').addEventListener('click',()=>{mapGroup=null;mapSoftware=null;mapCompany=null;renderMap()});
+  document.getElementById('mapBack').addEventListener('click',()=>{if(mapCompany)mapCompany=null;else if(mapSoftware)mapSoftware=null;else mapGroup=null;renderMap()});
+  document.querySelectorAll('[data-map-crumb]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.mapCrumb==='root'){mapGroup=null;mapSoftware=null}else if(button.dataset.mapCrumb==='mode'){mapGroup=null;mapSoftware=null}else if(button.dataset.mapCrumb==='group')mapSoftware=null;mapCompany=null;renderMap()}));
+  document.querySelectorAll('[data-map-group]').forEach(button=>button.addEventListener('click',()=>{mapGroup=mapGroup===button.dataset.mapGroup?null:button.dataset.mapGroup;mapSoftware=null;mapCompany=null;renderMap()}));
+  document.querySelectorAll('[data-map-software]').forEach(button=>button.addEventListener('click',()=>{mapSoftware=mapSoftware===button.dataset.mapSoftware?null:button.dataset.mapSoftware;mapCompany=null;renderMap()}));
+  document.querySelectorAll('[data-map-company]').forEach(button=>button.addEventListener('click',()=>{mapCompany=button.dataset.mapCompany;renderMap()}));
+  document.querySelectorAll('[data-map-edit-company]').forEach(button=>button.addEventListener('click',()=>openCompany(button.dataset.mapEditCompany)));
+  document.querySelectorAll('[data-map-jump-family]').forEach(button=>button.addEventListener('click',()=>{mapMode='software';mapGroup=button.dataset.mapJumpFamily;mapSoftware=null;mapCompany=null;renderMap()}));
+  document.querySelectorAll('[data-map-jump-tool]').forEach(button=>button.addEventListener('click',()=>{mapSoftware=button.dataset.mapJumpTool;mapCompany=null;renderMap()}));
+  document.querySelectorAll('[data-map-jump-cell]').forEach(button=>button.addEventListener('click',()=>{mapSoftware=button.dataset.mapJumpCell;mapCompany=null;document.getElementById('mapSearch').value=button.dataset.mapJumpCategory;renderMap()}));
+  requestAnimationFrame(mapDrawLinks);
 }
 
 const accountingTools=[
@@ -336,7 +380,7 @@ function openCompany(siren){
     <div class="drawer-header"><p class="eyebrow">Activité publique : ${esc(sector(c))} · Catégorie groupe : <span id="drawerGroupCategory">${esc(category||'À classer')}</span></p><h2>${esc(c.nom_complet)}</h2><p class="muted">SIREN ${c.siren} · ${esc(managerLabel(c))}</p></div>
     <div class="drawer-tabs"><button class="drawer-tab active" type="button" data-drawer-tab="details">Fiche entreprise</button><button class="drawer-tab" type="button" data-drawer-tab="notes">Note privée</button></div>
     <div class="drawer-body" id="companyDetailsPanel">
-      <div class="notice" id="mapSampleNotice" hidden><b>Échantillon fictif.</b> La cartographie illustre des logiciels pour cette entreprise, sans les enregistrer dans sa fiche. Les champs ci-dessous sont les données réellement saisies.</div>
+      <div class="notice" id="mapSampleNotice" hidden><b>Échantillon fictif.</b> La cartographie illustre des logiciels et des KPI pour cette entreprise sans les enregistrer dans sa fiche. Les champs ci-dessous sont les données réellement saisies.</div>
       <div class="section-title">Données légales</div>
       <div class="info-grid">
         <div class="info-box"><small>SIRET siège</small><b>${esc(c.siret_siege||'N/D')}</b><div class="data-source">Source publique</div></div>
@@ -423,6 +467,15 @@ function renderMapSampleNotice(c){
   const notice=document.getElementById('mapSampleNotice');
   if(notice)notice.hidden=!document.getElementById('mapView').classList.contains('active')||!mapUsesSample(c);
 }
+function renderMapSearchResults(){
+  const input=document.getElementById('mapSearch'),panel=document.getElementById('mapSearchResults'),query=input.value.trim().toLocaleLowerCase('fr');
+  if(query.length<2){panel.hidden=true;input.setAttribute('aria-expanded','false');return}
+  const names=[...new Set(companies.flatMap(c=>[mapAccounting(c),...mapOtherSoftware(c).map(item=>item.name)]).filter(Boolean))];
+  const options=[...groupCategories.map(label=>({type:'Pôle',label,mode:'category',group:label})),...mapFamilies().map(label=>({type:'Famille',label,mode:'software',group:label})),...names.map(label=>({type:'Logiciel',label,mode:'software',group:mapFamilies().find(family=>companies.some(c=>mapTools(c,family).includes(label)))})),...companies.map(c=>({type:'Entreprise',label:c.nom_complet,siren:c.siren,category:mapCategory(c)}))].filter(option=>option.label.toLocaleLowerCase('fr').includes(query)).slice(0,9);
+  panel.innerHTML=options.length?options.map((option,index)=>`<button type="button" role="option" data-map-result="${index}">${esc(option.label)}<small>${esc(option.type)}${option.siren?' · '+esc(option.siren):''}</small></button>`).join(''):'<div class="map-empty">Aucun résultat</div>';
+  panel.hidden=false;input.setAttribute('aria-expanded','true');
+  panel.querySelectorAll('[data-map-result]').forEach(button=>button.addEventListener('click',()=>{const option=options[Number(button.dataset.mapResult)];input.value='';mapMode=option.mode||'category';mapGroup=option.group||option.category;mapSoftware=option.type==='Logiciel'?option.label:null;mapCompany=option.siren||null;if(option.siren&&option.type==='Entreprise')mapCompany=option.siren;panel.hidden=true;input.setAttribute('aria-expanded','false');renderMap()}));
+}
 function setupCustomSelect(selectId,inputId){
   const select=document.getElementById(selectId),input=document.getElementById(inputId),label=input.closest('label');
   const update=()=>{label.hidden=select.value!=='other';input.required=select.value==='other'};
@@ -455,9 +508,12 @@ function setupGlobal(){
   document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal); document.getElementById('kpiCancel').addEventListener('click',closeKpiModal);
   document.getElementById('kpiForm').addEventListener('submit',e=>{e.preventDefault();const kpi={name:document.getElementById('kpiName').value.trim(),unit:document.getElementById('kpiUnit').value,value:document.getElementById('kpiValue').value,target:document.getElementById('kpiTarget').value,comment:document.getElementById('kpiComment').value.trim()};kpiTargets.forEach(siren=>{const old=getInternal(siren);internal[siren]={...old,kpis:[...(old.kpis||[]),{...kpi}]}});saveInternal();const currentSiren=currentCompany?.siren;closeKpiModal();if(currentSiren&&kpiTargets.includes(currentSiren))renderCompanyKpis(currentSiren);selectedCompanies.clear();renderCompanies();renderMap();});
   document.getElementById('performanceFilter').addEventListener('change',renderPerformance);
-  document.getElementById('mapSearch').addEventListener('input',()=>{mapGroup=null;mapSoftware=null;renderMap()});
-  document.querySelectorAll('[data-map-mode]').forEach(button=>button.addEventListener('click',()=>{mapMode=button.dataset.mapMode;mapGroup=null;mapSoftware=null;renderMap()}));
-  document.getElementById('mapSampleToggle').addEventListener('change',event=>{showMapSamples=event.target.checked;mapGroup=null;mapSoftware=null;renderMap()});
+  document.getElementById('mapSearch').addEventListener('input',()=>{mapGroup=null;mapSoftware=null;mapCompany=null;renderMap();renderMapSearchResults()});
+  document.getElementById('mapSearch').addEventListener('keydown',event=>{if(event.key==='Escape'){document.getElementById('mapSearchResults').hidden=true;event.currentTarget.setAttribute('aria-expanded','false')}if(event.key==='Enter'){const first=document.querySelector('[data-map-result]');if(first){event.preventDefault();first.click()}}});
+  document.addEventListener('click',event=>{if(!event.target.closest('.map-search-wrap')){document.getElementById('mapSearchResults').hidden=true;document.getElementById('mapSearch').setAttribute('aria-expanded','false')}});
+  document.querySelectorAll('[data-map-mode]').forEach(button=>button.addEventListener('click',()=>{mapMode=button.dataset.mapMode;mapGroup=null;mapSoftware=null;mapCompany=null;document.getElementById('mapSearch').value='';renderMap()}));
+  document.getElementById('mapSampleToggle').addEventListener('change',event=>{showMapSamples=event.target.checked;mapGroup=null;mapSoftware=null;mapCompany=null;renderMap()});
+  window.addEventListener('resize',mapDrawLinks);
   document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim(),email=document.getElementById('trainingEmail').value.trim();if(!title||!email)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title,email});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }

@@ -125,16 +125,17 @@
           <div class="map-module-header">
             <div><h3>Cartographie du groupe</h3><p>Explorez les catégories, les logiciels et les entreprises du référentiel.</p></div>
             <div class="map-controls">
-              <input id="mapSearch" type="search" placeholder="Entreprise, logiciel, catégorie…" aria-label="Rechercher dans la cartographie" />
+              <div class="map-search-wrap"><input id="mapSearch" type="search" placeholder="Entreprise, logiciel, famille, pôle…" aria-label="Rechercher dans la cartographie" autocomplete="off" role="combobox" aria-controls="mapSearchResults" aria-expanded="false" /><div id="mapSearchResults" class="map-search-results" role="listbox" hidden></div></div>
               <div class="map-mode-switch" role="group" aria-label="Vue de la cartographie">
-                <button type="button" class="map-mode-button active" data-map-mode="category" aria-pressed="true">Par catégorie</button>
+                <button type="button" class="map-mode-button active" data-map-mode="category" aria-pressed="true">Par pôle</button>
                 <button type="button" class="map-mode-button" data-map-mode="software" aria-pressed="false">Par logiciel</button>
               </div>
               <label class="map-sample-toggle"><input id="mapSampleToggle" type="checkbox" checked /> Afficher l’échantillon démo</label>
             </div>
           </div>
           <div id="mapSummary" class="map-summary"></div>
-          <div class="map-disclaimer">Jusqu’à huit entreprises ont des logiciels fictifs pour illustrer la cartographie. Ces exemples restent ici : ils ne modifient ni les fiches ni l’export. Les montants et scores sont simulés.</div>
+          <div class="map-disclaimer">Démonstration : les affectations logicielles et KPI de huit entreprises sont fictifs. Ils restent dans cette cartographie, sans modifier les fiches ni l’export. Les montants et scores sont simulés.</div>
+          <div id="mapToolbar" class="map-toolbar"></div>
           <div class="map-workspace">
             <div id="mapCanvas" class="map-canvas" aria-label="Cartographie interactive"></div>
             <aside id="mapInsights" class="map-insights" aria-label="Analyse de la sélection"></aside>
