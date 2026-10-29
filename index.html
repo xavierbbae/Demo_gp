@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css?v=20261021-4" />
   <link rel="stylesheet" href="cartography.css?v=20261021-4" />
   <link rel="stylesheet" href="training.css?v=20261029-1" />
+  <link rel="stylesheet" href="connections.css?v=20261029-1" />
 </head>
 <body>
   <div class="app-shell">
@@ -145,13 +146,20 @@
       </section>
 
       <section id="connectionsView" class="view">
-        <div class="notice"><b>Vision cible du produit.</b> Les connexions ci-dessous sont présentées dans la démo pour illustrer l'automatisation future. Les boutons de connexion sont simulés localement.</div>
+        <div class="notice"><b>Connexions de démonstration.</b> Les statuts et dates de synchronisation ci-dessous sont simulés dans ce navigateur. Aucun logiciel comptable réel n’est connecté et aucune donnée n’est importée automatiquement.</div>
         <div class="connection-hero panel">
-          <div><p class="eyebrow">CENTRALISATION FINANCIÈRE</p><h2>Connecter les outils comptables du groupe</h2><p>Chaque filiale peut conserver son logiciel actuel. Le dashboard normalise ensuite les données pour offrir une lecture groupe homogène : CA, résultat, trésorerie, créances, dettes, marges et KPI.</p></div>
+          <div><p class="eyebrow">SUIVI PAR ENTREPRISE</p><h2>Connexions comptables</h2><p>Retrouvez le logiciel de chaque société, renseignez les outils manquants et suivez l’état de connexion et la dernière synchronisation, entreprise par entreprise.</p></div>
           <div class="sync-visual"><div class="sync-node">Sage</div><div class="sync-node">Cegid</div><div class="sync-center">PARFAIT<br><small>Data Hub</small></div><div class="sync-node">EBP</div><div class="sync-node">ERP</div></div>
         </div>
+        <div id="connectionSummary" class="connection-summary"></div>
+        <div class="connection-section-title"><div><h3>Écosystème comptable</h3><p>Sélectionnez un logiciel pour filtrer les entreprises qui l’utilisent.</p></div><button type="button" class="connection-reset-filter" id="connectionResetTool" hidden>Voir tous les logiciels ×</button></div>
         <div class="connections-grid" id="connectionsGrid"></div>
-        <div class="panel data-flow"><div class="panel-head"><div><h3>Flux cible</h3><p>Exemple d'architecture fonctionnelle</p></div></div><div class="flow-row"><div>Outils comptables<br><small>Sage · Cegid · EBP · ERP</small></div><span>→</span><div>Connecteurs<br><small>API · SFTP · imports</small></div><span>→</span><div>Modèle financier commun<br><small>CA · résultat · cash · KPI</small></div><span>→</span><div>Dashboard groupe<br><small>Temps quasi-réel</small></div></div></div>
+        <div class="panel connection-workspace">
+          <div class="connection-workspace-head"><div><h3>Entreprises du groupe</h3><p>Recherchez une société, puis ouvrez sa fiche de connexion.</p></div><span id="connectionResultCount"></span></div>
+          <div class="connection-toolbar"><label class="connection-search"><span aria-hidden="true">⌕</span><input id="connectionSearch" type="search" placeholder="Nom, SIREN, ville ou logiciel…" aria-label="Rechercher une entreprise à connecter" /></label><select id="connectionStatusFilter" aria-label="Filtrer par statut de connexion"><option value="all">Tous les statuts</option><option value="connected">Connectées (démo)</option><option value="pending">Outil connu, non connecté</option><option value="missing">Logiciel non renseigné</option></select></div>
+          <div class="connection-layout"><div id="connectionCompanyList" class="connection-company-list"></div><aside id="connectionDetail" class="connection-detail" aria-label="Détail de la connexion comptable"></aside></div>
+        </div>
+        <div class="panel data-flow"><div class="panel-head"><div><h3>Flux cible en production</h3><p>Cette chaîne est illustrée, pas encore active dans la démo.</p></div></div><div class="flow-row"><div>Logiciel de chaque société<br><small>Renseigné dans sa fiche</small></div><span>→</span><div>Connecteur dédié<br><small>API · export · SFTP</small></div><span>→</span><div>Données financières fiables<br><small>Contrôles · historique</small></div><span>→</span><div>Dashboard groupe<br><small>Actualisation vérifiée</small></div></div></div>
       </section>
 
       <section id="registrationsView" class="view">
@@ -199,7 +207,8 @@
   </div>
 
   <script src="data/companies-data.js"></script>
-  <script src="app.js?v=20261029-1"></script>
+  <script src="connections.js?v=20261029-1"></script>
+  <script src="app.js?v=20261029-2"></script>
   <script src="training.js?v=20261029-1"></script>
 </body>
 </html>

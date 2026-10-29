@@ -170,8 +170,8 @@ function renderOverview(){
   const sec={};companies.forEach(c=>{const category=groupCategory(c)||'À classer';sec[category]=(sec[category]||0)+1}); const sorted=Object.entries(sec).sort((a,b)=>b[1]-a[1]), max=sorted[0]?.[1]||1;
   document.getElementById('sectorBars').innerHTML=sorted.map(([s,v])=>`<div class="sector-row"><span>${esc(s)}</span><div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%"></div></div><b>${v}</b></div>`).join('');
 
-  const connected=Number(localStorage.getItem('parfait_connected_tools')||0);
-  document.getElementById('automationCard').innerHTML=`<div class="automation-icon">↻</div><div><b>${connected?connected+' connecteur'+(connected>1?'s':'')+' activé'+(connected>1?'s':''):'Connecter les outils comptables'}</b><p>${connected?'Dernière synchronisation simulée : il y a 8 min.':'Automatisez le CA, le résultat, la trésorerie et les KPI au jour le jour.'}</p></div><button class="btn primary" onclick="showView('connections')">${connected?'Gérer':'Configurer'}</button>`;
+  const connected=connectionCount();
+  document.getElementById('automationCard').innerHTML=`<div class="automation-icon">↻</div><div><b>${connected?connected+' entreprise'+(connected>1?'s':'')+' connectée'+(connected>1?'s':'')+' en démo':'Suivre les connexions comptables'}</b><p>${connected?'Dernières synchronisations simulées, par entreprise.':'Renseignez le logiciel de chaque société et suivez son statut de connexion.'}</p></div><button class="btn primary" onclick="showView('connections')">${connected?'Voir le suivi':'Configurer'}</button>`;
 }
 
 function setupCompanyFilters(){
@@ -356,22 +356,6 @@ function renderMap(){
   requestAnimationFrame(mapDrawLinks);
 }
 
-const accountingTools=[
-  {name:'Sage',desc:'Comptabilité, écritures, balances et journaux',logo:'S',status:'Disponible'},
-  {name:'Cegid',desc:'Finance, comptabilité et gestion multi-entités',logo:'C',status:'Disponible'},
-  {name:'Pennylane',desc:'Facturation, banque et comptabilité',logo:'P',status:'Disponible'},
-  {name:'EBP',desc:'Comptabilité et gestion pour PME',logo:'E',status:'À configurer'},
-  {name:'SAP / ERP',desc:'Connecteur générique ERP et finance',logo:'SA',status:'Sur mesure'},
-  {name:'Oracle / NetSuite',desc:'ERP, finance et consolidation',logo:'O',status:'Sur mesure'},
-  {name:'Fichier / SFTP',desc:'Import automatique CSV, Excel ou dépôt SFTP',logo:'⇅',status:'Disponible'},
-  {name:'API personnalisée',desc:'Connexion à un logiciel métier interne',logo:'API',status:'Sur mesure'}
-];
-function renderConnections(){
-  const state=JSON.parse(localStorage.getItem('parfait_connection_state')||'{}');
-  document.getElementById('connectionsGrid').innerHTML=accountingTools.map((t,i)=>{const on=!!state[i];return `<article class="connection-card"><div class="connection-logo">${t.logo}</div><div class="connection-content"><div class="connection-title"><h3>${t.name}</h3><span class="badge ${on?'green':'neutral'}">${on?'Connecté':t.status}</span></div><p>${t.desc}</p><div class="connection-meta"><span>${on?'Synchronisation toutes les heures':'Données disponibles selon API / export'}</span>${on?'<span>Dernière synchro · 09:54</span>':''}</div></div><button class="btn ${on?'ghost':'primary'} connect-btn" data-index="${i}">${on?'Déconnecter':'Connecter'}</button></article>`}).join('');
-  document.querySelectorAll('.connect-btn').forEach(btn=>btn.addEventListener('click',()=>{const s=JSON.parse(localStorage.getItem('parfait_connection_state')||'{}'); const i=btn.dataset.index; s[i]=!s[i]; localStorage.setItem('parfait_connection_state',JSON.stringify(s)); localStorage.setItem('parfait_connected_tools',Object.values(s).filter(Boolean).length); renderConnections(); renderOverview();}));
-}
-
 function openCompany(siren){
   const c=companies.find(x=>x.siren===siren); if(!c)return; currentCompany=c; const int=getInternal(siren), f=simulatedFinance(c), dm=demoMetrics(c);
   const category=groupCategory(c),accounting=accountingSoftware(c),knownAccounting=accountingSoftwareOptions.includes(accounting);
@@ -435,13 +419,15 @@ function openCompany(siren){
   renderMapSampleNotice(c);
   document.getElementById('internalForm').addEventListener('submit',event=>{
     event.preventDefault();
-    const saved=getInternal(c.siren),selectedAccounting=document.getElementById('accountingSelect').value;
-    internal[c.siren]={...saved,effectif_interne:document.getElementById('internalEmployees').value,ca_interne:document.getElementById('internalRevenue').value,objectif_ca:document.getElementById('internalTarget').value,groupCategory:document.getElementById('internalCategory').value,accountingSoftware:selectedAccounting==='other'?document.getElementById('accountingCustom').value.trim():selectedAccounting,commentaire:document.getElementById('internalComment').value};
+    const saved=getInternal(c.siren),previousAccounting=accountingSoftware(c),selectedAccounting=document.getElementById('accountingSelect').value;
+    const nextAccounting=selectedAccounting==='other'?document.getElementById('accountingCustom').value.trim():selectedAccounting;
+    internal[c.siren]={...saved,effectif_interne:document.getElementById('internalEmployees').value,ca_interne:document.getElementById('internalRevenue').value,objectif_ca:document.getElementById('internalTarget').value,groupCategory:document.getElementById('internalCategory').value,accountingSoftware:nextAccounting,commentaire:document.getElementById('internalComment').value};
+    if(previousAccounting!==nextAccounting || !Object.hasOwn(saved,'accountingSoftware'))clearConnectionRecord(c.siren);
     saveInternal();
     document.getElementById('internalSaveStatus').textContent='Enregistré sur cet appareil.';
     document.getElementById('drawerGroupCategory').textContent=groupCategory(c)||'À classer';
     renderMapSampleNotice(c);
-    renderCompanies();renderOverview();renderMap();
+    renderCompanies();renderOverview();renderMap();renderConnections();
   });
   document.getElementById('otherSoftwareForm').addEventListener('submit',event=>{
     event.preventDefault();
@@ -502,10 +488,10 @@ function setupGlobal(){
   document.getElementById('mapSearch').addEventListener('keydown',event=>{if(event.key==='Escape'){document.getElementById('mapSearchResults').hidden=true;event.currentTarget.setAttribute('aria-expanded','false')}if(event.key==='Enter'){const first=document.querySelector('[data-map-result]');if(first){event.preventDefault();first.click()}}});
   document.addEventListener('click',event=>{if(!event.target.closest('.map-search-wrap')){document.getElementById('mapSearchResults').hidden=true;document.getElementById('mapSearch').setAttribute('aria-expanded','false')}});
   document.querySelectorAll('[data-map-mode]').forEach(button=>button.addEventListener('click',()=>{mapMode=button.dataset.mapMode;mapGroup=null;mapSoftware=null;mapCompany=null;document.getElementById('mapSearch').value='';renderMap()}));
-  document.getElementById('mapSampleToggle').addEventListener('change',event=>{showMapSamples=event.target.checked;mapGroup=null;mapSoftware=null;mapCompany=null;renderMap()});
+  document.getElementById('mapSampleToggle').addEventListener('change',event=>{showMapSamples=event.target.checked;mapGroup=null;mapSoftware=null;mapCompany=null;renderMap();renderConnections();renderOverview()});
   window.addEventListener('resize',mapDrawLinks);
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }
 function closeDrawer(){document.getElementById('drawerOverlay').classList.remove('open');document.getElementById('companyDrawer').classList.remove('open')}
 
-setupNav(); setupCompanyFilters(); setupGlobal(); renderOverview(); renderPerformance(); renderMap(); renderConnections();
+setupNav(); setupCompanyFilters(); setupGlobal(); setupConnections(); renderOverview(); renderPerformance(); renderMap(); renderConnections();
