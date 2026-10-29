@@ -16,7 +16,7 @@ Cette démo contient :
 - la sélection de plusieurs entreprises et l'ajout d'un même KPI au lot,
 - un onglet de note privée par entreprise (stockée sur cet appareil),
 - un thème marron,
-- la création de liens pour des formulaires d'inscription aux formations,
+- un module Formations : formations en cours/à venir, historique, création d'une formation avec entreprise et date ou période, lien d'inscription, trois parcours terminés fictifs, supports, feuille de présence, questionnaire personnalisable et graphiques d'impact,
 - un écran de connexions comptables simulées (Sage, Cegid, Pennylane, EBP, ERP, imports SFTP/API),
 - un export JSON enrichi.
 
@@ -27,7 +27,9 @@ Les catégories, logiciels, KPI, notes et formulaires créés sont stockés loca
 
 La cartographie utilise les entreprises du dashboard. Huit sociétés réparties entre les quatre pôles ont chacune des exemples fictifs de logiciels comptables, de logiciels de gestion et de trois KPI métier (valeur et objectif), clairement signalés et désactivables dans cet onglet. Ces exemples ne sont jamais enregistrés dans les fiches ni inclus dans l'export JSON ; toute saisie réelle dans une fiche prend le dessus sur l'exemple correspondant. « Non renseigné » n'est pas compté comme logiciel utilisé. Les KPI et les simulations financières affichés dans la cartographie ne sont pas des chiffres réels.
 
-FORMULAIRES D'INSCRIPTION :
-Publier index.html, inscription.html, inscription.js, app.js, style.css et data/ sur le même site statique. Le lien créé dans l'onglet « Inscriptions formations » est partageable une fois le site publié. Le formulaire public demande Nom, Prénom et Mail pro puis transmet la réponse par FormSubmit à l'adresse choisie. L'adresse proposée est xymapartners.contact@gmail.com. Lors de la première soumission, le destinataire doit confirmer le courriel d'activation de FormSubmit ; les réponses sont ensuite acheminées par e-mail. Les anciens liens sans adresse destinataire utilisent l'adresse proposée. Les liens affichent l'adresse de réception dans leur URL. Les données sont traitées par un service tiers ; ne partager le formulaire qu'après validation de ce mode de collecte par le client.
+FORMATIONS :
+Publier tout le dossier, notamment index.html, training.js, training.css, inscription.html, inscription.js, evaluation.html, evaluation.js, support-formation.html, support-formation.js, app.js, style.css et data/ sur le même site statique. Trois formations terminées et une formation à venir sont des exemples fictifs. Leur formulaire d'inscription, leur feuille de présence, leurs supports, leur questionnaire et leurs graphiques sont interactifs. Les questions ajoutées, fichiers importés (PDF, PNG, JPG ou texte, 1 Mo maximum), présences et réponses testées sont stockés uniquement dans le navigateur local. Les liens publics des exemples ne remontent les réponses au dashboard que si le répondant utilise le même profil de navigateur sur ce même appareil. Les supports importés localement ne sont pas visibles sur un autre appareil.
+
+Une formation test créée dans l'onglet Formations conserve un formulaire public de Nom, Prénom et Mail pro. Ses réponses sont transmises par FormSubmit à l'adresse choisie, proposée par défaut comme xymapartners.contact@gmail.com. Lors du premier envoi, le destinataire doit confirmer l'e-mail d'activation. Les anciens liens sans destinataire utilisent l'adresse proposée. Les données passent par un service tiers ; ce mode de collecte doit être validé par le client. Les comptes d'inscrits centralisés, les supports, les présences et les évaluations des formations créées sont volontairement verrouillés dans la démo. Ils nécessitent un serveur et une base de données sécurisée ; le module actuel ne prétend pas synchroniser les réponses entre appareils.
 
 Les notes dites privées n'ont pas d'authentification : toute personne ayant accès au même navigateur peut les consulter. Elles ne sont pas synchronisées entre appareils.

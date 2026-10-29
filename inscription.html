@@ -4,13 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inscription à une formation — Groupe Parfait</title>
-  <link rel="stylesheet" href="style.css?v=20261019-3" />
+  <link rel="stylesheet" href="style.css?v=20261029-1" />
 </head>
 <body class="public-page">
   <main class="public-card panel">
     <div class="public-brand"><div class="brand-mark">P</div><strong>GROUPE PARFAIT</strong></div>
     <p class="eyebrow">INSCRIPTION FORMATION</p>
     <h1 id="formationTitle"></h1>
+    <p id="formationMeta" class="muted"></p>
     <p class="muted">Renseignez vos coordonnées professionnelles pour vous inscrire.</p>
     <form id="registrationForm" class="public-form">
       <label for="lastName">Nom<input id="lastName" name="lastName" autocomplete="family-name" required maxlength="80" /></label>
@@ -19,8 +20,8 @@
       <button class="btn primary" type="submit">Envoyer</button>
     </form>
     <p id="registrationMessage" role="status"></p>
-    <p class="public-disclaimer">Vos coordonnées sont transmises à l’organisateur par le service FormSubmit.</p>
+    <p id="registrationDisclaimer" class="public-disclaimer">Vos coordonnées sont transmises à l’organisateur par le service FormSubmit.</p>
   </main>
-  <script src="inscription.js?v=20261019-3"></script>
+  <script src="inscription.js?v=20261029-1"></script>
 </body>
 </html>

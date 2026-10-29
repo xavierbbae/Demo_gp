@@ -134,7 +134,7 @@ function setupNav(){
   document.querySelectorAll('[data-go]').forEach(btn=>btn.addEventListener('click',()=>showView(btn.dataset.go)));
 }
 function showView(name){
-  const titles={overview:['PILOTAGE GROUPE','Vue d\'ensemble'],companies:['RÉFÉRENTIEL','Entreprises'],performance:['ANALYSE FINANCIÈRE','Performance'],map:['STRUCTURE','Cartographie'],connections:['INTÉGRATIONS','Connexions comptables'],registrations:['FORMATIONS','Inscriptions formations']};
+  const titles={overview:['PILOTAGE GROUPE','Vue d\'ensemble'],companies:['RÉFÉRENTIEL','Entreprises'],performance:['ANALYSE FINANCIÈRE','Performance'],map:['STRUCTURE','Cartographie'],connections:['INTÉGRATIONS','Connexions comptables'],registrations:['FORMATIONS','Formations']};
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); const target=document.getElementById(name+'View'); if(target) target.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===name));
   document.getElementById('pageEyebrow').textContent=titles[name][0]; document.getElementById('pageTitle').textContent=titles[name][1];
@@ -493,16 +493,6 @@ function renderCompanyKpis(siren){
 function openKpiModal(targets){kpiTargets=Array.isArray(targets)?targets:[targets];document.getElementById('kpiModalContext').textContent=kpiTargets.length===1?'Ce KPI sera ajouté à une entreprise.':`Ce KPI sera ajouté à ${kpiTargets.length} entreprises sélectionnées.`;document.getElementById('kpiModalOverlay').classList.add('open')}
 function closeKpiModal(){document.getElementById('kpiModalOverlay').classList.remove('open');document.getElementById('kpiForm').reset()}
 
-function loadTrainings(){try{const value=JSON.parse(localStorage.getItem(TRAININGS_KEY));return Array.isArray(value)?value:[]}catch{return []}}
-function trainingUrl(training){const url=new URL('inscription.html',location.href);url.searchParams.set('id',training.id);url.searchParams.set('formation',training.title);url.searchParams.set('destinataire',training.email||DEFAULT_TRAINING_EMAIL);return url.href}
-function renderTrainings(){
-  const trainings=loadTrainings();
-  document.getElementById('trainingList').innerHTML=trainings.length?trainings.map(training=>{
-    return `<article class="training-item"><div><h3>${esc(training.title)}</h3><p>Réponses envoyées à ${esc(training.email||DEFAULT_TRAINING_EMAIL)}</p><input readonly aria-label="Lien pour ${esc(training.title)}" value="${esc(trainingUrl(training))}"></div><div class="training-actions"><button class="btn ghost" data-copy-training="${esc(training.id)}">Copier le lien</button><a class="btn primary" href="${esc(trainingUrl(training))}" target="_blank" rel="noopener">Voir le formulaire</a></div></article>`
-  }).join(''):'<div class="empty-inline">Aucun formulaire créé pour le moment.</div>';
-  document.querySelectorAll('[data-copy-training]').forEach(button=>button.addEventListener('click',async()=>{const training=trainings.find(item=>item.id===button.dataset.copyTraining);if(!training)return;try{await navigator.clipboard.writeText(trainingUrl(training));button.textContent='Lien copié'}catch{const input=button.closest('.training-item').querySelector('input');input.select();document.execCommand('copy');button.textContent='Lien copié'}}));
-}
-
 function setupGlobal(){
   document.getElementById('drawerClose').addEventListener('click',closeDrawer); document.getElementById('drawerOverlay').addEventListener('click',closeDrawer);
   document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal); document.getElementById('kpiCancel').addEventListener('click',closeKpiModal);
@@ -514,9 +504,8 @@ function setupGlobal(){
   document.querySelectorAll('[data-map-mode]').forEach(button=>button.addEventListener('click',()=>{mapMode=button.dataset.mapMode;mapGroup=null;mapSoftware=null;mapCompany=null;document.getElementById('mapSearch').value='';renderMap()}));
   document.getElementById('mapSampleToggle').addEventListener('change',event=>{showMapSamples=event.target.checked;mapGroup=null;mapSoftware=null;mapCompany=null;renderMap()});
   window.addEventListener('resize',mapDrawLinks);
-  document.getElementById('trainingForm').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('trainingTitle').value.trim(),email=document.getElementById('trainingEmail').value.trim();if(!title||!email)return;const trainings=loadTrainings();trainings.push({id:crypto.randomUUID(),title,email});localStorage.setItem(TRAININGS_KEY,JSON.stringify(trainings));e.target.reset();renderTrainings()});
   document.getElementById('exportBtn').addEventListener('click',()=>{const payload=companies.map(c=>({...c,simulation:simulatedFinance(c),internal:getInternal(c.siren)}));const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='groupe-parfait-demo-enrichie.json';a.click();URL.revokeObjectURL(a.href);});
 }
 function closeDrawer(){document.getElementById('drawerOverlay').classList.remove('open');document.getElementById('companyDrawer').classList.remove('open')}
 
-setupNav(); setupCompanyFilters(); setupGlobal(); renderOverview(); renderPerformance(); renderMap(); renderConnections(); renderTrainings();
+setupNav(); setupCompanyFilters(); setupGlobal(); renderOverview(); renderPerformance(); renderMap(); renderConnections();

@@ -6,6 +6,7 @@
   <title>Groupe Parfait — Pilotage & Performance</title>
   <link rel="stylesheet" href="style.css?v=20261021-4" />
   <link rel="stylesheet" href="cartography.css?v=20261021-4" />
+  <link rel="stylesheet" href="training.css?v=20261029-1" />
 </head>
 <body>
   <div class="app-shell">
@@ -24,7 +25,7 @@
         <button class="nav-item" data-view="performance"><span>↗</span> Performance</button>
         <button class="nav-item" data-view="map"><span>◎</span> Cartographie</button>
         <button class="nav-item" data-view="connections"><span>↻</span> Connexions comptables</button>
-        <button class="nav-item" data-view="registrations"><span>✎</span> Inscriptions formations</button>
+        <button class="nav-item" data-view="registrations"><span>✎</span> Formations</button>
       </nav>
 
       <div class="sidebar-bottom">
@@ -154,19 +155,24 @@
       </section>
 
       <section id="registrationsView" class="view">
-        <div class="notice"><b>Inscriptions par e-mail.</b> Les réponses sont envoyées à l’adresse indiquée via FormSubmit. Lors du premier envoi, confirmez l’e-mail d’activation reçu à cette adresse.</div>
-        <div class="panel registration-panel">
-          <div class="panel-head"><div><h3>Créer un lien d’inscription</h3><p>Un formulaire simple à partager pour une formation</p></div></div>
+        <div class="training-intro"><div><p class="eyebrow">PARCOURS DE FORMATION</p><h2>Former, suivre et mesurer l’impact</h2><p>De l’inscription au questionnaire de satisfaction, suivez chaque étape au même endroit.</p></div><button class="btn primary" id="trainingCreateButton" type="button">+ Créer une formation test</button></div>
+        <div class="training-notice"><b>Démo interactive.</b> Les trois formations terminées et la formation à venir contiennent des données fictives. Les inscriptions, présences, supports ajoutés et réponses testées sur cet appareil sont conservés uniquement dans ce navigateur. Une collecte centralisée sur plusieurs appareils nécessite un service sécurisé.</div>
+        <div id="trainingSummary" class="training-summary"></div>
+        <div class="panel training-create-panel" id="trainingCreatePanel" hidden>
+          <div class="panel-head"><div><h3>Créer une formation test</h3><p>Choisissez l’entreprise et les dates pour générer son formulaire d’inscription.</p></div><button type="button" class="btn ghost" id="trainingCreateClose">Fermer</button></div>
           <form id="trainingForm" class="form-grid">
-            <label class="full">Nom de la formation<input id="trainingTitle" required maxlength="120" placeholder="Ex. Formation management" /></label>
+            <label class="full">Nom de la formation<input id="trainingTitle" required maxlength="120" placeholder="Ex. Prise en main du logiciel de gestion" /></label>
+            <label>Entreprise concernée<select id="trainingCompany" required><option value="">Choisir une entreprise</option></select></label>
+            <label>Format des dates<select id="trainingDateMode"><option value="single">Une date</option><option value="period">Une période / plusieurs dates</option></select></label>
+            <label>Date de début<input id="trainingStart" type="date" required /></label>
+            <label id="trainingEndLabel" hidden>Date de fin<input id="trainingEnd" type="date" /></label>
             <label class="full">Adresse recevant les inscriptions<input id="trainingEmail" type="email" required maxlength="254" value="xymapartners.contact@gmail.com" /></label>
-            <div class="form-actions full"><button class="btn primary" type="submit">Créer le formulaire</button></div>
+            <p class="full training-form-help">Le formulaire fonctionne par e-mail. Le suivi automatisé des participants et les étapes suivantes sont réservés à la version complète.</p>
+            <div class="form-actions full"><button class="btn primary" type="submit">Créer la formation et son formulaire</button></div>
           </form>
         </div>
-        <div class="panel registration-panel">
-          <div class="panel-head"><div><h3>Formulaires créés</h3><p>Copiez un lien ou ouvrez le formulaire public</p></div></div>
-          <div id="trainingList" class="training-list"></div>
-        </div>
+        <div class="training-list-head"><div class="training-tabs" role="group" aria-label="Période des formations"><button type="button" class="training-tab active" data-training-tab="active" aria-pressed="true">En cours et à venir <span id="trainingActiveCount"></span></button><button type="button" class="training-tab" data-training-tab="history" aria-pressed="false">Historique <span id="trainingHistoryCount"></span></button></div></div>
+        <div class="training-layout"><div class="panel training-list-panel"><div id="trainingList" class="training-list"></div></div><div id="trainingDetail" class="panel training-detail-panel"></div></div>
       </section>
     </main>
   </div>
@@ -193,6 +199,7 @@
   </div>
 
   <script src="data/companies-data.js"></script>
-  <script src="app.js?v=20261021-4"></script>
+  <script src="app.js?v=20261029-1"></script>
+  <script src="training.js?v=20261029-1"></script>
 </body>
 </html>

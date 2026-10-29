@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Questionnaire de formation — Groupe Parfait</title>
+  <link rel="stylesheet" href="style.css?v=20261029-1" />
+  <link rel="stylesheet" href="training.css?v=20261029-1" />
+</head>
+<body class="public-page">
+  <main class="public-card panel">
+    <div class="public-brand"><div class="brand-mark">P</div><strong>GROUPE PARFAIT</strong></div>
+    <p class="eyebrow">ÉVALUATION APRÈS FORMATION</p>
+    <h1 id="evaluationTitle"></h1>
+    <p class="muted">Pour chaque question, donnez une note de 1 à 5.</p>
+    <div class="training-notice">Questionnaire de démonstration : la réponse reste sur ce navigateur. Elle n’est pas transmise à l’organisateur depuis un autre appareil.</div>
+    <form id="evaluationForm" class="public-form" hidden>
+      <div id="evaluationQuestions" class="evaluation-questions"></div>
+      <button class="btn primary" type="submit">Envoyer mon évaluation</button>
+    </form>
+    <p id="evaluationMessage" role="status"></p>
+  </main>
+  <script src="evaluation.js?v=20261029-1"></script>
+</body>
+</html>
